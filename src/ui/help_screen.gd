@@ -26,9 +26,7 @@ announce themselves before they arrive.
 
 TOGETHER
 A dead friend can come back: a cairn of stone, their tag, and
-a fire kept through one full night.
-
-Debug: F3 overlay  F5 hazard  F6 time x20  F7 fly      F1 closes this"""
+a fire kept through one full night."""
 
 
 func setup() -> void:
@@ -47,6 +45,11 @@ func setup() -> void:
 	title.text = "HELP"
 	title.position = Vector2(24, 4)
 	root.add_child(title)
+	var top := Label.new()
+	top.text = "F1 closes    debug: F3 info  F5 hazard  F6 x20  F7 fly"
+	top.position = Vector2(110, 10)
+	top.modulate = Color(0.75, 0.75, 0.75)
+	root.add_child(top)
 	var body := Label.new()
 	body.text = TEXT
 	body.position = Vector2(24, 24)
