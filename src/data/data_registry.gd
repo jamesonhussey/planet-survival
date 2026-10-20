@@ -9,6 +9,7 @@ const PALETTES_PATH := "res://data/palettes.json"
 const RENDER_PATH := "res://data/render_settings.json"
 const MODES_PATH := "res://data/modes.json"
 const PLANETS_DIR := "res://data/planets"
+const ITEMS_PATH := "res://data/items.json"
 
 var materials: Array[MaterialProps] = []
 var material_ids: Dictionary = {}  # name -> id
@@ -16,6 +17,8 @@ var palettes: Dictionary = {}  # palette id -> Dictionary
 var render: Dictionary = {}
 var modes: Dictionary = {}  # mode id -> Dictionary
 var planets: Dictionary = {}  # planet id -> Dictionary
+var items: Dictionary = {}  # item id -> Dictionary
+var block_items: Dictionary = {}  # material name -> item id that places it
 var loaded: bool = false
 var errors: PackedStringArray = []
 
@@ -27,11 +30,64 @@ func load_all() -> void:
 	render = load_json(RENDER_PATH)
 	_load_modes()
 	_load_planets()
+	_load_items()
 	loaded = true
 	for e in errors:
 		push_error(e)
 	if errors.is_empty():
-		print("[data] loaded %d materials, %d palettes, %d modes, %d planets" % [materials.size(), palettes.size(), modes.size(), planets.size()])
+		print("[data] loaded %d materials, %d palettes, %d modes, %d planets, %d items" % [materials.size(), palettes.size(), modes.size(), planets.size(), items.size()])
+
+
+func item_def(id: String) -> Dictionary:
+	return items.get(id, {})
+
+
+## New ItemInstance from an item id (null if unknown).
+func make_item(id: String, count: int = 1) -> ItemInstance:
+	var d := item_def(id)
+	if d.is_empty():
+		push_error("[data] unknown item '%s'" % id)
+		return null
+	return ItemInstance.new(d, count)
+
+
+## The item that drops when a block is dug (by material name), or "".
+func drop_item_for(material_name: String) -> String:
+	var id := block_id(material_name)
+	var drop := block(id).drop
+	if drop != "" and items.has(drop):
+		return drop
+	return ""
+
+
+func _load_items() -> void:
+	items.clear()
+	block_items.clear()
+	var doc := load_json(ITEMS_PATH)
+	for entry in doc.get("items", []):
+		if not (entry is Dictionary) or not entry.has("id"):
+			errors.append("%s: item without id" % ITEMS_PATH)
+			continue
+		var id := str(entry["id"])
+		if items.has(id):
+			errors.append("%s: duplicate item id %s" % [ITEMS_PATH, id])
+		var size: Array = entry.get("size", [1, 1])
+		if size.size() != 2 or int(size[0]) < 1 or int(size[1]) < 1:
+			errors.append("%s: item %s has invalid size" % [ITEMS_PATH, id])
+		if entry.has("block") and not material_ids.has(str(entry["block"])):
+			errors.append("%s: item %s places unknown material %s" % [ITEMS_PATH, id, entry["block"]])
+		if entry.has("block"):
+			block_items[str(entry["block"])] = id
+		if entry.has("med") and not entry.has("use_time"):
+			errors.append("%s: medical item %s needs use_time" % [ITEMS_PATH, id])
+		for g in entry.get("grids", []):
+			if not (g is Array) or g.size() != 2:
+				errors.append("%s: item %s has invalid grid" % [ITEMS_PATH, id])
+		items[id] = entry
+	# Every material drop must exist as an item (or be empty).
+	for m in materials:
+		if m.drop != "" and not items.has(m.drop):
+			errors.append("%s: material %s drops unknown item '%s'" % [MATERIALS_PATH, m.name, m.drop])
 
 
 func reload_render_settings() -> Dictionary:

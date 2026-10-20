@@ -4,17 +4,22 @@ extends Node
 ## plain dictionaries so they serialise for RPC later:
 ##   {"type": "dig",   "pos": Vector3i, "from": Vector3}
 ##   {"type": "place", "pos": Vector3i, "block": int, "from": Vector3}
-## Validation only uses material properties and reach, never special cases.
+## Validation only uses material properties, reach and what the player
+## actually carries (via `kit_lookup`), never special cases.
 
 const REACH := 5.5
 
 var session: Session = null
 var world: WorldData = null
-var player_lookup: Callable = Callable()   # peer id -> PlayerState (hotbar etc.)
+## (peer id) -> PlayerKit or null. When a kit exists, digging yields the
+## material's drop item and placing consumes the matching block item.
+var kit_lookup: Callable = Callable()
 
 signal command_rejected(peer: int, cmd: Dictionary, reason: String)
 signal block_dug(peer: int, pos: Vector3i, block_id: int)
 signal block_placed(peer: int, pos: Vector3i, block_id: int)
+## Dug drop that did not fit in the inventory: spawn it in the world.
+signal item_overflow(peer: int, pos: Vector3i, item: ItemInstance)
 
 
 func setup(world_data: WorldData) -> void:
@@ -30,6 +35,12 @@ func handle(cmd: Dictionary) -> void:
 			_place(peer, cmd)
 		_:
 			command_rejected.emit(peer, cmd, "unknown command")
+
+
+func _kit(peer: int) -> PlayerKit:
+	if kit_lookup.is_valid():
+		return kit_lookup.call(peer)
+	return null
 
 
 func _in_reach(cmd: Dictionary, pos: Vector3i) -> bool:
@@ -57,6 +68,11 @@ func _dig(peer: int, cmd: Dictionary) -> void:
 		return
 	if world.set_block(pos, 0):
 		block_dug.emit(peer, pos, id)
+		var kit := _kit(peer)
+		if kit != null and mp.drop != "":
+			var item: ItemInstance = Data.make_item(mp.drop, 1)
+			if item != null and not kit.equipment.add_item(item):
+				item_overflow.emit(peer, pos, item)
 
 
 func _place(peer: int, cmd: Dictionary) -> void:
@@ -78,5 +94,15 @@ func _place(peer: int, cmd: Dictionary) -> void:
 	if cmd.has("blocked_by_body") and bool(cmd["blocked_by_body"]):
 		command_rejected.emit(peer, cmd, "player in the way")
 		return
+	var kit := _kit(peer)
+	var item_id := ""
+	if kit != null:
+		var mat_name: String = world.props[block_id].name
+		item_id = str(Data.block_items.get(mat_name, ""))
+		if item_id == "" or kit.equipment.count_of(item_id) < 1:
+			command_rejected.emit(peer, cmd, "no %s left" % mat_name)
+			return
 	if world.set_block(pos, block_id):
+		if kit != null:
+			kit.equipment.consume(item_id, 1)
 		block_placed.emit(peer, pos, block_id)

@@ -23,7 +23,9 @@ Godot 4 survival game: pick one of four planets, learn its deadly physical rule,
 
 Command-line user args (after `--`): `--planet=ID`, `--mode=short|standard|long_haul`, `--seed=N`, `--smoke`, `--screenshot`, `--frames=N`, `--trigger`, `--timescale=N`, `--eye=dx,dy,dz --yaw=r --pitch=r` (debug fly camera offset from spawn).
 
-In-game keys: WASD move, Space jump, Shift sprint, Ctrl crouch, LMB dig, RMB place, 1–7 / wheel select block, F flashlight, Esc release mouse, R restart after death. Debug: F3 overlay, F5 trigger hazard, F6 time ×20, F7 fly, F8 reload `data/render_settings.json`.
+In-game keys: WASD move, Space jump, Shift sprint, Ctrl crouch, LMB dig, RMB place the block in the selected quick slot, 1–6 / wheel select quick slot, Q use the selected item (med → auto-picks the worst part; breather → toggle), E take a nearby pickup, Tab inventory, H health screen, F flashlight, Esc release mouse / close screens, R restart after death. In the inventory: click an item to hold it, click a cell to put it there, R rotates while holding, right-click for Examine/Use/Equip/Open/Split/Drop, 1–6 while hovering assigns a quick slot, G drops. Debug: F3 overlay, F5 trigger hazard, F6 time ×20, F7 fly, F8 reload `data/render_settings.json`.
+
+Screenshot/smoke args for the screens: `--ui=inventory`, `--ui=health --hurt` (pre-damages the body).
 
 **After every change:** run `tools/test.sh` and `tools/smoke.sh` (CI runs both). Headless `class_name` lookups need a fresh import; `tools/ensure_import.sh` handles that and the test scripts call it. For API questions, grep the doctool dump (`docs/godot-classes/doc/classes/*.xml`) rather than guessing.
 
@@ -32,18 +34,19 @@ In-game keys: WASD move, Space jump, Shift sprint, Ctrl crouch, LMB dig, RMB pla
 ```
 src/core      Game (autoload: boot/args/state), Run (one survival run, builds everything), GameClock, EventBus, InputSetup
 src/data      DataRegistry (autoload "Data": loads + validates data/*.json), MaterialProps
-src/net       Session (always a server; solo = local host), WorldCommands (validated dig/place; RPC transport lands in M4)
+src/net       Session (always a server; solo = local host), WorldCommands (validated dig/place, drops into / consumes from the player's kit; RPC transport lands in M4)
+src/items     ItemInstance (stack, rotation, examined, uses/pool, nested grids), Equipment (pockets, rig, backpack, quick slots)
 src/world     WorldData (chunk dict, bounds clamp, world_size 0 = infinite), Chunk, ChunkGenerator (seeded, deterministic),
               ChunkMesher (face culling + AO, worker threads), ChunkStreamer (load/unload around focus), BlockTextureGen, VoxelRay, PropSpawner
-src/sim       Pure logic, no nodes, unit tested: GasSim, Vitals (more sims land per milestone)
+src/sim       Pure logic, no nodes, unit tested: GasSim, Vitals, InventoryGrid, BodyHealth (more sims land per milestone)
 src/hazards   HazardModule (IDLE→WARNING→ACTIVE→RECOVERY), HazardDirector (schedule + escalation), HeavyGasHazard, Telegraph, GasRenderer
 src/render    PS1Pipeline (low-res SubViewport + post shader), MaterialFactory, shaders/ (terrain, voxel_model, post, ps1_common)
 src/voxel_art VoxelModel, VoxelMesher (greedy), PartRig (rigid parts), VoxelArt (generator registry + cache), generators/
-src/player    PlayerController (first person, camera shake, dig/place through Session)
-src/entities  Creature (part-rig animation, wander brain, breathes)
-src/ui        PixelFont (+glyph data), HUD
+src/player    PlayerController (first person, camera shake, dig/place through Session), PlayerKit (equipment + body + timed med/examine actions + breather)
+src/entities  Creature (part-rig animation, wander brain, breathes), ItemPickup
+src/ui        PixelFont (+glyph data), HUD, GridView, InventoryUI, HealthScreen
 src/audio     SoundBank (synthesised AudioStreamWAV)
-data/         materials.json, palettes.json, planets/*.json, render_settings.json, modes.json
+data/         materials.json, items.json (blocks, meds, containers, gear), palettes.json, planets/*.json (incl. starting_kit), render_settings.json, modes.json
 tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 ```
 
@@ -69,3 +72,7 @@ tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 - `signi()` truncates floats to int first; use `int(signf(x))`.
 - Negative constants can't be built with `<<`; write `-(1 << 20)`.
 - `WorkerThreadPool` tasks capture `self`; wait for them in `_exit_tree` (see `ChunkStreamer`).
+- Two `RefCounted` objects referencing each other leak (no cycle collector). Back-references (`InventoryGrid.owner_item`, `ItemInstance.parent_grid`) are `WeakRef` properties; connect signals to methods, not to lambdas that capture `self`.
+- `Dictionary.merge()` does not overwrite existing keys unless you pass `true`.
+- Mouse events pushed into the low-res SubViewport must be remapped with `PS1Pipeline.screen_to_view_transform()` or GUI hit-testing is off.
+- The test runner calls `Data.load_all()` itself; autoloads exist in `-s` runs but `Game.boot()` never runs there.

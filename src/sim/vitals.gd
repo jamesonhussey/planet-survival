@@ -21,6 +21,8 @@ var suffocation_dps: float = 7.0
 var gas_threshold: float = 0.22          # concentration where breathing stops working
 
 var last_damage_cause: String = ""
+## When set, damage is routed here (e.g. into a BodyHealth) instead of `hp`.
+var damage_sink: Callable = Callable()
 
 
 func configure(cfg: Dictionary) -> void:
@@ -52,6 +54,10 @@ func breathe(gas: float, dt: float) -> float:
 
 func damage(amount: float, cause: String) -> void:
 	if not alive or amount <= 0.0:
+		return
+	last_damage_cause = cause
+	if damage_sink.is_valid():
+		damage_sink.call(amount, cause)
 		return
 	hp = maxf(0.0, hp - amount)
 	last_damage_cause = cause

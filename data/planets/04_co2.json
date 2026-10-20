@@ -17,7 +17,10 @@
     "fog_start": 10.0,
     "fog_end": 64.0
   },
-  "clock": {"minutes_per_day": 15, "start_hour": 8},
+  "clock": {
+    "minutes_per_day": 15,
+    "start_hour": 8
+  },
   "terrain": {
     "type": "hills_lakes",
     "base_height": 50,
@@ -36,7 +39,11 @@
     "shore_band": 2,
     "mossy_chance": 0.12
   },
-  "spawn": {"mode": "high_ground_near_lake", "min_height_above_lake": 6, "search_radius": 96},
+  "spawn": {
+    "mode": "high_ground_near_lake",
+    "min_height_above_lake": 6,
+    "search_radius": 96
+  },
   "vitals": {
     "oxygen_seconds": 40,
     "oxygen_recover_seconds": 8,
@@ -51,8 +58,16 @@
       "warning_time": 45,
       "active_time": 50,
       "recovery_time": 120,
-      "interval_days": {"base": 2.0, "per_day": -0.02, "min": 0.5},
-      "intensity": {"base": 1.0, "per_day": 0.03, "max": 3.0},
+      "interval_days": {
+        "base": 2.0,
+        "per_day": -0.02,
+        "min": 0.5
+      },
+      "intensity": {
+        "base": 1.0,
+        "per_day": 0.03,
+        "max": 3.0
+      },
       "sim": {
         "tick_hz": 6,
         "source": "lake_surface",
@@ -67,28 +82,169 @@
       },
       "cues": {
         "warning": [
-          {"t": 0, "type": "toast", "text": "The lake is bubbling.", "seconds": 4},
-          {"t": 0, "type": "sound", "id": "deep_rumble", "loop": true},
-          {"t": 0, "type": "lake_bubbles", "intensity": 0.4},
-          {"t": 15, "type": "shake", "strength": 0.15, "seconds": 3},
-          {"t": 20, "type": "sound", "id": "birds_scatter"},
-          {"t": 30, "type": "lake_bubbles", "intensity": 1.0},
-          {"t": 35, "type": "toast", "text": "Something is wrong with the air near the water.", "seconds": 4},
-          {"t": 40, "type": "shake", "strength": 0.35, "seconds": 5}
+          {
+            "t": 0,
+            "type": "toast",
+            "text": "The lake is bubbling.",
+            "seconds": 4
+          },
+          {
+            "t": 0,
+            "type": "sound",
+            "id": "deep_rumble",
+            "loop": true
+          },
+          {
+            "t": 0,
+            "type": "lake_bubbles",
+            "intensity": 0.4
+          },
+          {
+            "t": 15,
+            "type": "shake",
+            "strength": 0.15,
+            "seconds": 3
+          },
+          {
+            "t": 20,
+            "type": "sound",
+            "id": "birds_scatter"
+          },
+          {
+            "t": 30,
+            "type": "lake_bubbles",
+            "intensity": 1.0
+          },
+          {
+            "t": 35,
+            "type": "toast",
+            "text": "Something is wrong with the air near the water.",
+            "seconds": 4
+          },
+          {
+            "t": 40,
+            "type": "shake",
+            "strength": 0.35,
+            "seconds": 5
+          }
         ],
         "active": [
-          {"t": 0, "type": "sound", "id": "gas_hiss", "loop": true},
-          {"t": 0, "type": "toast", "text": "The lake breathes out.", "seconds": 5}
+          {
+            "t": 0,
+            "type": "sound",
+            "id": "gas_hiss",
+            "loop": true
+          },
+          {
+            "t": 0,
+            "type": "toast",
+            "text": "The lake breathes out.",
+            "seconds": 5
+          }
         ],
         "recovery": [
-          {"t": 0, "type": "toast", "text": "The air begins to clear.", "seconds": 4}
+          {
+            "t": 0,
+            "type": "toast",
+            "text": "The air begins to clear.",
+            "seconds": 4
+          }
         ]
       }
     }
   ],
   "props": [
-    {"generator": "tree", "per_chunk": 1.4, "params": {"height": [6, 11], "ramp": "leaf", "bark": "bark"}, "on": ["grass"]},
-    {"generator": "lantern", "per_chunk": 0.08, "params": {"ramp": "lantern"}, "on": ["grass", "stone"]},
-    {"generator": "grazer", "per_chunk": 0.18, "params": {"ramp": "grazer", "size": [0.8, 1.3]}, "on": ["grass"], "creature": true}
+    {
+      "generator": "tree",
+      "per_chunk": 1.4,
+      "params": {
+        "height": [
+          6,
+          11
+        ],
+        "ramp": "leaf",
+        "bark": "bark"
+      },
+      "on": [
+        "grass"
+      ]
+    },
+    {
+      "generator": "lantern",
+      "per_chunk": 0.08,
+      "params": {
+        "ramp": "lantern"
+      },
+      "on": [
+        "grass",
+        "stone"
+      ]
+    },
+    {
+      "generator": "grazer",
+      "per_chunk": 0.18,
+      "params": {
+        "ramp": "grazer",
+        "size": [
+          0.8,
+          1.3
+        ]
+      },
+      "on": [
+        "grass"
+      ],
+      "creature": true
+    }
+  ],
+  "starting_kit": [
+    {
+      "id": "chest_rig",
+      "equip": true
+    },
+    {
+      "id": "backpack_small",
+      "equip": true
+    },
+    {
+      "id": "planks",
+      "count": 12
+    },
+    {
+      "id": "cobble",
+      "count": 2
+    },
+    {
+      "id": "glass",
+      "count": 2
+    },
+    {
+      "id": "thatch",
+      "count": 8
+    },
+    {
+      "id": "bandage",
+      "examined": true
+    },
+    {
+      "id": "bandage"
+    },
+    {
+      "id": "hemostat"
+    },
+    {
+      "id": "splint"
+    },
+    {
+      "id": "painkillers"
+    },
+    {
+      "id": "medkit_small"
+    },
+    {
+      "id": "breather"
+    },
+    {
+      "id": "filter"
+    }
   ]
 }

@@ -28,6 +28,12 @@ From orbit the player sees four planets (01–04) and picks one. Each looks liva
 | 2026-10-20 | Hazard sims run on an *active region* around players, never the whole world | Bounded cost at any world size; open region edges destroy gas |
 | 2026-10-20 | Props spawn per chunk column from the seed; no props within 5 blocks of spawn | Deterministic, streamable; player must not wake up inside a tree |
 | 2026-10-20 | Creatures obey hazard rules (`breathes`) and die first on low ground | Dead animals are the brief's organic warning sign |
+| 2026-10-20 | Inventory: 4 built-in 1×1 pockets + rig + backpack container items with per-grid shapes (`grids: [[w,h],...]`), nesting allowed, 6 quick slots that reference items anywhere in the kit | Tarkov model; quick slots double as the block hotbar so one UI concept covers meds, gear and building |
+| 2026-10-20 | Health: 7 parts (35/85/70/60/60/65/65 = 440), blacked part forwards 70% of further damage to the rest, head/thorax 0 = death; meds as data with `med` kind, `treats`, `uses`/`hp_pool`, `use_time` | Tarkov model; use times make healing a decision during an event |
+| 2026-10-20 | Unknown items (`known: false`) show a vague name until examined (timed action) | Brief requirement; cheap tension on finds |
+| 2026-10-20 | Weight limit 25 kg (reduced by arm injuries); over it, speed drops 1.5%/kg to 60% | Makes block stacks a real choice without Minecraft-style infinite pockets |
+| 2026-10-20 | Planet gear example: breather mask (85% filtering, 90 s consumable filters, 1.2 kg) | One costed option among several (high ground, airtight room, trenches) |
+| 2026-10-20 | Fall damage above 11 m/s landing speed goes to the legs as blunt damage | Gives the health system a reason to exist before enemies arrive |
 
 ## Planets
 
@@ -63,7 +69,7 @@ PS1 / liminal: 3D rendered to a 480×270 SubViewport, nearest upscale, Bayer 4×
 ## Systems roadmap (milestones)
 
 1. ✅ Vertical slice on 04: movement, streamed voxel terrain, dig/place, 15 materials with properties, GasSim + director + telegraph, oxygen, PS1 pipeline, micro-voxel tree/lantern/grazer, debug tools, tests.
-2. Tarkov inventory (grid, rotation, nested containers, weight, examine) + body-part health, status effects, meds, health screen.
+2. ✅ Tarkov inventory (grid, rotation, nested containers, weight, examine, quick slots, pickups) + body-part health, status effects, meds with use times, health screen, fall damage, breather mask.
 3. Survival loop: hunger/thirst/temperature/stamina, food & spoilage & cooking, crafting, day counter, win/lose, planet select, save/load, export presets + build script.
 4. Co-op foundation (ENet, replication, ghost + ritual) so later systems are multiplayer-aware.
 5. Planets 01 and 02 (light ray; flood + swarm).

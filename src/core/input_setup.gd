@@ -24,6 +24,9 @@ const ACTIONS := {
 	"debug_overlay": [KEY_F3],
 	"pause": [KEY_ESCAPE],
 	"restart": [KEY_R],
+	"use_item": [KEY_Q],
+	"rotate_item": [KEY_R],
+	"drop_item": [KEY_G],
 }
 
 const MOUSE_ACTIONS := {

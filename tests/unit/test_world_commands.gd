@@ -78,3 +78,37 @@ func test_voxel_ray_hits_first_solid() -> void:
 	var diag := VoxelRay.cast(Vector3(5.5, 6.0, 5.5), Vector3(0.01, -1, 0.01), 10.0, func(c: Vector3i) -> bool: return w.is_solid(c))
 	assert_true(diag.hit)
 	assert_eq(diag.normal, Vector3i(0, 1, 0))
+
+
+func test_kit_drops_and_consumption() -> void:
+	# Uses the real Data autoload (materials + items) through WorldData props.
+	var w := WorldData.new(64, 32, Data.materials)
+	w.insert_chunk(Chunk.new(Vector3i(0, 0, 0)))
+	w.set_block(Vector3i(3, 3, 3), Data.block_id("stone"), false)
+	var cmds := WorldCommands.new()
+	cmds.setup(w)
+	var kit := PlayerKit.new(1)
+	kit.equipment.equip(Data.make_item("backpack_small"))
+	cmds.kit_lookup = func(_peer: int) -> PlayerKit: return kit
+	var s := Session.new()
+	s.setup_local_host(cmds)
+	var rejected := []
+	cmds.command_rejected.connect(func(_p: int, _c: Dictionary, r: String) -> void: rejected.append(r))
+	s.submit({"type": "dig", "pos": Vector3i(3, 3, 3), "from": Vector3(3.5, 5.0, 3.5)})
+	assert_eq(kit.equipment.count_of("cobble"), 1, "digging stone yields cobble")
+	s.submit({"type": "place", "pos": Vector3i(3, 3, 3), "block": Data.block_id("brick"), "from": Vector3(3.5, 5.0, 3.5)})
+	assert_eq(rejected.back(), "no brick left")
+	s.submit({"type": "place", "pos": Vector3i(3, 3, 3), "block": Data.block_id("stone"), "from": Vector3(3.5, 5.0, 3.5)})
+	assert_eq(w.get_block(Vector3i(3, 3, 3)), Data.block_id("stone"), "placed stone from cobble")
+	assert_eq(kit.equipment.count_of("cobble"), 0, "cobble consumed")
+	# Overflow: fill the pack, dig again, drop must overflow into the world.
+	var overflow := []
+	cmds.item_overflow.connect(func(_p: int, _pos: Vector3i, it: ItemInstance) -> void: overflow.append(it))
+	while kit.equipment.add_item(Data.make_item("log")):
+		pass
+	for g in kit.equipment.pockets:
+		g.auto_place(Data.make_item("bandage"))
+	s.submit({"type": "dig", "pos": Vector3i(3, 3, 3), "from": Vector3(3.5, 5.0, 3.5)})
+	assert_eq(overflow.size(), 1, "drop overflowed")
+	cmds.free()
+	s.free()

@@ -1,8 +1,9 @@
 class_name PlayerController
 extends CharacterBody3D
 ## First-person controller. Movement is local (client predicted later);
-## every world mutation goes through Session.submit(). Also hosts the
-## interactor (dig/place), a flashlight and debug fly mode.
+## every world mutation goes through Session.submit(). Hosts the interactor
+## (dig/place from the selected quick slot), a flashlight, camera shake and
+## debug fly mode. Health/inventory live in `kit` (PlayerKit).
 
 const WALK_SPEED := 4.2
 const SPRINT_SPEED := 6.5
@@ -16,12 +17,12 @@ const FLY_SPEED := 18.0
 var session: Session = null
 var world: WorldData = null
 var streamer: ChunkStreamer = null
+var kit: PlayerKit = null
 var fly: bool = false
-var mouse_captured: bool = true
-var hotbar: Array[int] = []          # block ids (Milestone 2 replaces with inventory)
-var hotbar_index: int = 0
-var speed_multiplier: float = 1.0    # vitals / weight penalties plug in here
-var input_enabled: bool = true
+var hotbar_index: int = 0            # selected quick slot
+var speed_multiplier: float = 1.0    # vitals / weight / injury penalties
+var aim_jitter: float = 0.0          # from pain and blacked arms
+var input_enabled: bool = true       # false while a UI screen is open or dead
 
 var head: Node3D
 var camera: Camera3D
@@ -35,9 +36,13 @@ var _aim: VoxelRay.Hit = VoxelRay.Hit.new()
 var _shake_strength: float = 0.0
 var _shake_time: float = 0.0
 var _shake_total: float = 1.0
+var _was_on_floor: bool = true
 
 signal aim_changed(hit: VoxelRay.Hit)
-signal hotbar_changed(index: int, block_id: int)
+signal hotbar_changed(index: int)
+signal landed(impact_speed: float)
+signal use_requested(item: ItemInstance)
+signal interact_requested
 
 
 func _ready() -> void:
@@ -76,11 +81,11 @@ func _ready() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
-func configure(s: Session, w: WorldData, st: ChunkStreamer, blocks: Array[int]) -> void:
+func configure(s: Session, w: WorldData, st: ChunkStreamer, player_kit: PlayerKit) -> void:
 	session = s
 	world = w
 	streamer = st
-	hotbar = blocks
+	kit = player_kit
 
 
 func set_look(yaw: float, pitch: float) -> void:
@@ -109,6 +114,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_select_hotbar(hotbar_index + 1)
 	elif event.is_action_pressed("hotbar_prev"):
 		_select_hotbar(hotbar_index - 1)
+	elif event.is_action_pressed("use_item"):
+		use_requested.emit(selected_item())
+	elif event.is_action_pressed("interact"):
+		interact_requested.emit()
 	elif event is InputEventMouseButton and event.is_pressed():
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -116,22 +125,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_select_hotbar(hotbar_index + 1)
 	else:
-		for i in 9:
+		for i in Equipment.QUICK_SLOTS:
 			if event.is_action_pressed("hotbar_%d" % (i + 1)):
 				_select_hotbar(i)
 
 
 func _select_hotbar(i: int) -> void:
-	if hotbar.is_empty():
-		return
-	hotbar_index = posmod(i, hotbar.size())
-	hotbar_changed.emit(hotbar_index, hotbar[hotbar_index])
+	hotbar_index = posmod(i, Equipment.QUICK_SLOTS)
+	hotbar_changed.emit(hotbar_index)
 
 
+func selected_item() -> ItemInstance:
+	if kit == null:
+		return null
+	return kit.equipment.quick_item(hotbar_index)
+
+
+## Block id the selected quick slot would place, or 0.
 func selected_block() -> int:
-	if hotbar.is_empty():
+	var it := selected_item()
+	if it == null or not it.is_block():
 		return 0
-	return hotbar[hotbar_index]
+	return Data.block_id(it.block_name())
 
 
 func _physics_process(delta: float) -> void:
@@ -148,6 +163,7 @@ func _physics_process(delta: float) -> void:
 		var v := wish * FLY_SPEED + Vector3.UP * up * FLY_SPEED
 		velocity = velocity.lerp(v, 0.25)
 		move_and_slide()
+		_was_on_floor = true
 	else:
 		var speed := WALK_SPEED
 		if input_enabled and Input.is_action_pressed("sprint"):
@@ -162,7 +178,12 @@ func _physics_process(delta: float) -> void:
 		var accel := 12.0 if is_on_floor() else 3.0
 		velocity.x = move_toward(velocity.x, wish.x * speed, accel * speed * delta)
 		velocity.z = move_toward(velocity.z, wish.z * speed, accel * speed * delta)
+		var vy_before := velocity.y
 		move_and_slide()
+		var on_floor := is_on_floor()
+		if on_floor and not _was_on_floor and vy_before < -1.0:
+			landed.emit(-vy_before)
+		_was_on_floor = on_floor
 		# Safety: never fall out of the world.
 		if global_position.y < -8.0:
 			global_position.y = float(world.world_height) if world != null else 80.0
@@ -208,11 +229,14 @@ func add_shake(strength: float, seconds: float) -> void:
 
 
 func _process(delta: float) -> void:
+	var t := Time.get_ticks_msec() * 0.001
+	var offset := Vector3.ZERO
 	if _shake_time > 0.0:
 		_shake_time -= delta
 		var k := _shake_strength * clampf(_shake_time / _shake_total, 0.0, 1.0)
-		var t := Time.get_ticks_msec() * 0.001
-		camera.position = Vector3(sin(t * 37.0) * k * 0.6, sin(t * 53.0) * k, 0.0) * 0.1
+		offset += Vector3(sin(t * 37.0) * k * 0.6, sin(t * 53.0) * k, 0.0) * 0.1
 		if _shake_time <= 0.0:
-			camera.position = Vector3.ZERO
 			_shake_strength = 0.0
+	if aim_jitter > 0.0:
+		offset += Vector3(sin(t * 9.3) * aim_jitter, sin(t * 7.1) * aim_jitter, 0.0) * 0.004
+	camera.position = offset

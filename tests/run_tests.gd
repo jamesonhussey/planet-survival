@@ -22,6 +22,12 @@ func _process(_delta: float) -> bool:
 
 func _initialize() -> void:
 	_started = true
+	# Autoloads exist but Game.boot() never ran: load the data files once so
+	# tests can use Data.materials / Data.make_item().
+	if root.has_node("Data"):
+		var data: Node = root.get_node("Data")
+		if not data.get("loaded"):
+			data.call("load_all")
 	var filter := ""
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--filter="):

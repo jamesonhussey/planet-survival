@@ -78,6 +78,24 @@ func set_tint(color: Color, amount: float) -> void:
 	post.set_shader_parameter("tint_amount", amount)
 
 
+## Window-space to internal-resolution transform for the letterboxed display.
+func screen_to_view_transform() -> Transform2D:
+	var win := Vector2(get_viewport().get_visible_rect().size)
+	var internal := Vector2(_internal_size())
+	var scale := minf(win.x / internal.x, win.y / internal.y)
+	if scale <= 0.0:
+		return Transform2D.IDENTITY
+	var offset := (win - internal * scale) * 0.5
+	return Transform2D(0.0, Vector2(1.0 / scale, 1.0 / scale), 0.0, -offset / scale)
+
+
 func _input(event: InputEvent) -> void:
-	if viewport != null:
+	if viewport == null:
+		return
+	# Mouse events carry window coordinates; remap them into the low-res
+	# viewport so Controls inside it hit-test correctly. Captured-mouse look
+	# uses relative motion and is pushed untouched.
+	if event is InputEventMouse and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		viewport.push_input(event.xformed_by(screen_to_view_transform()), false)
+	else:
 		viewport.push_input(event, false)
