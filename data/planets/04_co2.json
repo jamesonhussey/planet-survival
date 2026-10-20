@@ -20,8 +20,8 @@
   "clock": {"minutes_per_day": 15, "start_hour": 8},
   "terrain": {
     "type": "hills_lakes",
-    "base_height": 44,
-    "amplitude": 20,
+    "base_height": 50,
+    "amplitude": 12,
     "frequency": 0.011,
     "octaves": 4,
     "lake_level": 40,
@@ -59,9 +59,9 @@
         "emit_per_tick": 0.08,
         "max_concentration": 1.0,
         "gravity_rate": 0.9,
-        "lateral_rate": 0.22,
+        "lateral_rate": 0.8,
         "decay_per_tick": 0.0025,
-        "min_concentration": 0.01,
+        "min_concentration": 0.005,
         "region_margin": 40,
         "max_active_cells": 60000
       },

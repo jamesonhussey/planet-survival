@@ -75,6 +75,7 @@ func _process(_delta: float) -> void:
 		if screenshot_mode:
 			_save_screenshot()
 		print("[smoke] finished OK (state=%s)" % State.keys()[state])
+		_clear_run()
 		get_tree().quit(0)
 
 

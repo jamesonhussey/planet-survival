@@ -23,6 +23,7 @@ const ACTIONS := {
 	"debug_reload_render": [KEY_F8],
 	"debug_overlay": [KEY_F3],
 	"pause": [KEY_ESCAPE],
+	"restart": [KEY_R],
 }
 
 const MOUSE_ACTIONS := {
