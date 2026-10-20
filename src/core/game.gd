@@ -85,6 +85,10 @@ func _save_screenshot() -> void:
 		push_warning("screenshot: no image (headless?)")
 		return
 	DirAccess.make_dir_recursive_absolute("res://screenshots")
+	if not FileAccess.file_exists("res://screenshots/.gdignore"):
+		var f := FileAccess.open("res://screenshots/.gdignore", FileAccess.WRITE)
+		if f != null:
+			f.close()
 	var path := "res://screenshots/%s_%s.png" % [str(args.get("planet", "04")), Time.get_datetime_string_from_system().replace(":", "-")]
 	var err := img.save_png(path)
 	print("[screenshot] %s (%s)" % [path, error_string(err)])
