@@ -565,6 +565,77 @@
       "weight": 0.05,
       "stack": 1,
       "desc": "Dropped where someone died. Set it on a cairn to call them back."
+    },
+    {
+      "id": "coconut",
+      "name": "Coconut",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.6,
+      "stack": 6,
+      "use_time": 3.0,
+      "food": {
+        "hunger": 0.2,
+        "thirst": 0.15
+      },
+      "spoil_hours": 120,
+      "desc": "Food and drink in a shell."
+    },
+    {
+      "id": "shellfish",
+      "name": "Shellfish",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.2,
+      "stack": 12,
+      "use_time": 2.0,
+      "food": {
+        "hunger": 0.1,
+        "poison_chance": 0.25
+      },
+      "spoil_hours": 8,
+      "desc": "Dug from the wet sand. Cook it."
+    },
+    {
+      "id": "shellfish_cooked",
+      "name": "Steamed Shellfish",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.15,
+      "stack": 12,
+      "use_time": 2.0,
+      "food": {
+        "hunger": 0.22
+      },
+      "spoil_hours": 24,
+      "desc": "Safe and salty."
+    },
+    {
+      "id": "roach_meat",
+      "name": "Roach Meat",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.1,
+      "stack": 16,
+      "use_time": 2.0,
+      "food": {
+        "hunger": 0.06,
+        "poison_chance": 0.3
+      },
+      "spoil_hours": 12,
+      "desc": "It was going to eat you first."
     }
   ]
 }

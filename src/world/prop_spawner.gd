@@ -118,6 +118,8 @@ func _populate(c: Vector2i) -> void:
 				continue
 			if removed.has(Vector2i(x, z)):
 				continue
+			if generator.is_structure_column(x, z):
+				continue
 			var y := world.surface_y(x, z)
 			if y < 0:
 				continue

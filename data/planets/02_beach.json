@@ -1,0 +1,290 @@
+{
+  "id": "02",
+  "name": "The Beach Planet",
+  "tagline": "Endless beach. The tide has teeth.",
+  "palette": "02",
+  "world_size": 1024,
+  "world_height": 128,
+  "mood": {
+    "sky_top": "#7fc4ff",
+    "sky_horizon": "#eaf6ff",
+    "fog_color": "#d9ecf6",
+    "ambient_color": "#9fbfd0",
+    "ambient_energy": 0.7,
+    "sun_color": "#fffbe6",
+    "sun_energy": 1.25,
+    "sun_elevation_degrees": 55,
+    "fog_start": 14.0,
+    "fog_end": 80.0,
+    "temp_day": 30,
+    "temp_night": 19,
+    "night_darkness": 0.8
+  },
+  "clock": {
+    "minutes_per_day": 15,
+    "start_hour": 9
+  },
+  "terrain": {
+    "type": "beach",
+    "sea_level": 34,
+    "coast_z": 0,
+    "land_slope": 0.045,
+    "max_rise": 14,
+    "dune_amplitude": 2.5,
+    "dune_frequency": 0.03,
+    "seabed_slope": 0.06,
+    "lake_level": 34,
+    "lake_fluid": "sea_water",
+    "surface": "sand",
+    "subsurface": "sand",
+    "subsurface_depth": 4,
+    "deep": "stone",
+    "shore": "sand",
+    "pool_frequency": 0.02,
+    "pool_threshold": 0.45
+  },
+  "spawn": {
+    "mode": "beach",
+    "min_height_above_lake": 3,
+    "search_radius": 80
+  },
+  "vitals": {
+    "oxygen_seconds": 40,
+    "oxygen_recover_seconds": 8,
+    "suffocation_dps": 7.0,
+    "gas_threshold": 0.22,
+    "hunger_hours": 36,
+    "thirst_hours": 16,
+    "comfort_temp": 24
+  },
+  "hazards": [
+    {
+      "id": "storm_flood",
+      "module": "flood",
+      "first_event_day": 1.5,
+      "warning_time": 70,
+      "active_time": 120,
+      "recovery_time": 90,
+      "interval_days": {
+        "base": 2.2,
+        "per_day": -0.02,
+        "min": 0.6
+      },
+      "intensity": {
+        "base": 1.0,
+        "per_day": 0.03,
+        "max": 2.6
+      },
+      "sim": {
+        "rise_blocks": 9,
+        "rise_per_intensity": 2,
+        "tide_out_blocks": 2,
+        "wave_force": 2.5,
+        "wave_force_per_intensity": 1.5,
+        "tick_hz": 2,
+        "region_radius": 32,
+        "swarm": {
+          "max_agents": 220,
+          "spawn_per_tick": 6,
+          "speed": 3.2,
+          "bite_damage": 4.0,
+          "squeeze_factor": 0.25
+        }
+      },
+      "cues": {
+        "warning": [
+          {
+            "t": 0,
+            "type": "toast",
+            "text": "The tide is pulling out. Too far.",
+            "seconds": 4
+          },
+          {
+            "t": 0,
+            "type": "sound",
+            "id": "deep_rumble",
+            "loop": true,
+            "volume_db": -4
+          },
+          {
+            "t": 15,
+            "type": "toast",
+            "text": "The sky is turning the colour of a bruise.",
+            "seconds": 4
+          },
+          {
+            "t": 30,
+            "type": "sound",
+            "id": "birds_scatter"
+          },
+          {
+            "t": 45,
+            "type": "shake",
+            "strength": 0.1,
+            "seconds": 3
+          },
+          {
+            "t": 55,
+            "type": "toast",
+            "text": "Something is moving under the sand.",
+            "seconds": 4
+          }
+        ],
+        "active": [
+          {
+            "t": 0,
+            "type": "sound",
+            "id": "gas_hiss",
+            "loop": true
+          },
+          {
+            "t": 0,
+            "type": "toast",
+            "text": "Here comes the water.",
+            "seconds": 4
+          },
+          {
+            "t": 8,
+            "type": "toast",
+            "text": "ROACHES.",
+            "seconds": 3
+          }
+        ],
+        "recovery": [
+          {
+            "t": 0,
+            "type": "toast",
+            "text": "The water is going back.",
+            "seconds": 4
+          }
+        ]
+      },
+      "active_tint": "#6a7a9a",
+      "active_tint_amount": 0.3
+    }
+  ],
+  "props": [
+    {
+      "generator": "palm",
+      "per_chunk": 0.9,
+      "params": {
+        "height": [
+          6,
+          10
+        ],
+        "ramp": "leaf",
+        "bark": "bark"
+      },
+      "on": [
+        "sand"
+      ],
+      "harvest": {
+        "id": "log",
+        "count": [
+          2,
+          3
+        ],
+        "time": 4.0,
+        "extra": {
+          "id": "coconut",
+          "count": [
+            1,
+            3
+          ]
+        },
+        "remove": true
+      }
+    },
+    {
+      "generator": "shell_cluster",
+      "per_chunk": 0.5,
+      "params": {
+        "ramp": "stone"
+      },
+      "on": [
+        "sand"
+      ],
+      "harvest": {
+        "id": "shellfish",
+        "count": [
+          2,
+          4
+        ],
+        "time": 2.0,
+        "regrow_hours": 30
+      }
+    },
+    {
+      "generator": "lantern",
+      "per_chunk": 0.04,
+      "params": {
+        "ramp": "lantern",
+        "rust": 0.9
+      },
+      "on": [
+        "sand"
+      ]
+    },
+    {
+      "generator": "grazer",
+      "per_chunk": 0.12,
+      "params": {
+        "ramp": "grazer",
+        "size": [
+          0.6,
+          0.9
+        ]
+      },
+      "on": [
+        "sand"
+      ],
+      "creature": true,
+      "drops": [
+        {
+          "id": "meat_raw",
+          "count": [
+            1,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "starting_kit": [
+    {
+      "id": "chest_rig",
+      "equip": true
+    },
+    {
+      "id": "backpack_small",
+      "equip": true
+    },
+    {
+      "id": "planks",
+      "count": 12
+    },
+    {
+      "id": "cobble",
+      "count": 2
+    },
+    {
+      "id": "bandage",
+      "examined": true
+    },
+    {
+      "id": "hemostat"
+    },
+    {
+      "id": "medkit_small"
+    },
+    {
+      "id": "canteen",
+      "examined": true
+    },
+    {
+      "id": "coconut",
+      "count": 2,
+      "examined": true
+    }
+  ]
+}

@@ -8,6 +8,8 @@ extends Node
 
 const MODULES := {
 	"heavy_gas": "res://src/hazards/heavy_gas_hazard.gd",
+	"light_ray": "res://src/hazards/eclipse_hazard.gd",
+	"flood": "res://src/hazards/flood_hazard.gd",
 }
 
 var modules: Array[HazardModule] = []

@@ -15,6 +15,9 @@ var generator: ChunkGenerator = null
 var props: Array[MaterialProps] = []   # indexed by block id
 ## Edited chunks from a save file, applied the moment a chunk is produced.
 var saved_chunks: Dictionary = {}      # Vector3i -> PackedByteArray
+## Peer responsible for the edit in progress (WorldCommands sets it; 0 = a
+## simulation or the world itself). Read by the run's replication hook.
+var edit_actor: int = 0
 var _half: int = 512
 var _cy_max: int = 7
 

@@ -57,6 +57,9 @@ func build(materials: Array[MaterialProps], seed: int = 1) -> BlockTextureGen:
 			"leaves":
 				tiles.append(_leaves(base, variance, rng))
 				_all_faces(m.id, tiles.size() - 1)
+			"cracks":
+				tiles.append(_cracks(base, variance, rng))
+				_all_faces(m.id, tiles.size() - 1)
 			"fire":
 				tiles.append(_fire(base, rng))
 				tile_of[m.id * 3 + 0] = tiles.size() - 1
@@ -194,6 +197,21 @@ static func _water(base: Color, variance: float, rng: RandomNumberGenerator) -> 
 				c = c.lightened(0.25)
 			c.a = 0.78
 			img.set_pixel(x, y, c)
+	return img
+
+
+static func _cracks(base: Color, variance: float, rng: RandomNumberGenerator) -> Image:
+	var img := _noise(base, variance, rng)
+	var dark := base.darkened(0.45)
+	for i in 3:
+		var x := rng.randi_range(0, TILE - 1)
+		var y := rng.randi_range(0, TILE - 1)
+		for s in rng.randi_range(6, 14):
+			img.set_pixel(posmod(x, TILE), posmod(y, TILE), dark)
+			if rng.randf() < 0.5:
+				x += rng.randi_range(-1, 1)
+			else:
+				y += rng.randi_range(-1, 1)
 	return img
 
 

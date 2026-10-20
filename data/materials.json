@@ -377,6 +377,96 @@
         "base": "#6a6a66",
         "variance": 0.22
       }
+    },
+    {
+      "id": 17,
+      "name": "cracked_earth",
+      "display": "Cracked Earth",
+      "solid": true,
+      "hardness": 0.8,
+      "tool": "shovel",
+      "drop": "dirt",
+      "waterproof": false,
+      "airtight": true,
+      "opacity": 1.0,
+      "heat_resistance": 0.8,
+      "flammability": 0.0,
+      "strength": 2,
+      "buoyancy": -1,
+      "weight": 1.7,
+      "texture": {
+        "style": "cracks",
+        "base": "#7a6652",
+        "variance": 0.1
+      }
+    },
+    {
+      "id": 18,
+      "name": "scorched_stone",
+      "display": "Scorched Stone",
+      "solid": true,
+      "hardness": 2.5,
+      "tool": "pick",
+      "drop": "cobble",
+      "waterproof": true,
+      "airtight": true,
+      "opacity": 1.0,
+      "heat_resistance": 1.0,
+      "flammability": 0.0,
+      "strength": 7,
+      "buoyancy": -1,
+      "weight": 2.7,
+      "texture": {
+        "style": "speckle",
+        "base": "#2e2a30",
+        "variance": 0.12
+      }
+    },
+    {
+      "id": 19,
+      "name": "sea_water",
+      "display": "Sea Water",
+      "solid": false,
+      "fluid": true,
+      "potable": false,
+      "hardness": 0,
+      "waterproof": true,
+      "airtight": false,
+      "opacity": 0.5,
+      "heat_resistance": 1.0,
+      "flammability": 0.0,
+      "strength": 0,
+      "buoyancy": 0,
+      "weight": 1.0,
+      "transparent": true,
+      "texture": {
+        "style": "water",
+        "base": "#3a8ab0",
+        "variance": 0.06
+      }
+    },
+    {
+      "id": 20,
+      "name": "dry_grass",
+      "display": "Dry Grass",
+      "solid": true,
+      "hardness": 0.6,
+      "tool": "shovel",
+      "drop": "dirt",
+      "waterproof": false,
+      "airtight": true,
+      "opacity": 1.0,
+      "heat_resistance": 0.3,
+      "flammability": 0.5,
+      "strength": 2,
+      "buoyancy": -1,
+      "weight": 1.6,
+      "texture": {
+        "style": "grass_top",
+        "base": "#6a5a48",
+        "top": "#8a7a4a",
+        "variance": 0.14
+      }
     }
   ]
 }

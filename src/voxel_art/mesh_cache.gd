@@ -10,6 +10,10 @@ const GENERATORS := {
 	"grazer": "res://src/voxel_art/generators/grazer_generator.gd",
 	"berry_bush": "res://src/voxel_art/generators/berry_bush_generator.gd",
 	"humanoid": "res://src/voxel_art/generators/humanoid_generator.gd",
+	"palm": "res://src/voxel_art/generators/palm_generator.gd",
+	"dead_tree": "res://src/voxel_art/generators/dead_tree_generator.gd",
+	"shell_cluster": "res://src/voxel_art/generators/shell_cluster_generator.gd",
+	"roach": "res://src/voxel_art/generators/roach_generator.gd",
 }
 
 static var _cache: Dictionary = {}

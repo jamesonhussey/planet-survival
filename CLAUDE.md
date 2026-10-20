@@ -20,7 +20,7 @@ Godot 4 survival game: pick one of four planets, learn its deadly physical rule,
 | Export builds | `.\tools\build.ps1 [windows\|linux\|all]` (templates via the editor once) | `tools/build.sh [windows\|linux\|all]` (downloads templates on first use) |
 | Play a planet directly | `.\tools\godot.ps1 --path . -- --planet=04 --seed=42` | same args |
 | Unit tests | `.\tools\test.ps1 [--filter=gas]` | `tools/test.sh [--filter=gas]` |
-| Smoke boot (headless, fails on script errors) | `.\tools\godot.ps1 --headless --path . -- --smoke --planet=04 --frames=240` | `tools/smoke.sh 04` |
+| Smoke boot (headless, fails on script errors) | `.\tools\godot.ps1 --headless --path . -- --smoke --planet=04 --frames=240` | `tools/smoke.sh` (all planets) or `tools/smoke.sh 02` |
 | Eruption smoke run | add `--trigger --timescale=10` | same |
 | Screenshot without a GPU (Linux, Xvfb + Mesa) | n/a | `tools/screenshot.sh 04 120` |
 | Dump the official class reference for the pinned version | `.\tools\godot.ps1 --headless --doctool docs\godot-classes --no-docbase` | `tools/docs.sh` |
@@ -41,10 +41,10 @@ src/core      Game (autoload: boot/args/state, orbit screen, save slot), Run (on
 src/data      DataRegistry (autoload "Data": loads + validates data/*.json), MaterialProps
 src/net       Net (autoload: ENet host/join + hello/welcome handshake), Session (authority boundary; solo = local host), WorldCommands (validated dig/place), Replicator (every in-run RPC: blocks, grants, hazard phases, packed gas cells, clock, peer states, creatures, pickups, harvests, rituals)
 src/items     ItemInstance (stack, rotation, examined, uses/pool, nested grids), Equipment (pockets, rig, backpack, quick slots)
-src/world     WorldData (chunk dict, bounds clamp, world_size 0 = infinite), Chunk, ChunkGenerator (seeded, deterministic),
+src/world     WorldData (chunk dict, bounds clamp, world_size 0 = infinite), Chunk, ChunkGenerator (seeded, deterministic; terrain types hills_lakes/farmland/beach), StructureGen (farmhouses, barns),
               ChunkMesher (face culling + AO, worker threads), ChunkStreamer (load/unload around focus), BlockTextureGen, VoxelRay, PropSpawner
-src/sim       Pure logic, no nodes, unit tested: GasSim, Vitals (oxygen, hunger, thirst, temperature, stamina), InventoryGrid, BodyHealth, Crafting, Ritual
-src/hazards   HazardModule (IDLE→WARNING→ACTIVE→RECOVERY), HazardDirector (schedule + escalation), HeavyGasHazard, Telegraph, GasRenderer
+src/sim       Pure logic, no nodes, unit tested: GasSim, LightRaySim, FluidSim, SwarmSim, Vitals, InventoryGrid, BodyHealth, Crafting, Ritual
+src/hazards   HazardModule (IDLE→WARNING→ACTIVE→RECOVERY, client_mode mirrors), HazardDirector (schedule + escalation; MODULES maps planet JSON `module` names), HeavyGasHazard (04), EclipseHazard (01, LightRaySim), FloodHazard (02, FluidSim + SwarmSim), Telegraph, GasRenderer, WaterRenderer, SwarmRenderer, EclipseVisuals
 src/render    PS1Pipeline (low-res SubViewport + post shader), MaterialFactory, shaders/ (terrain, voxel_model, post, ps1_common)
 src/voxel_art VoxelModel, VoxelMesher (greedy), PartRig (rigid parts), VoxelArt (generator registry + cache), generators/
 src/player    PlayerController (first person, camera shake, dig/place through Session), PlayerKit (equipment + body + timed med/examine actions + breather)

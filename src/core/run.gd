@@ -42,7 +42,18 @@ var kit: PlayerKit
 var clock: GameClock
 var hazards: HazardDirector
 var gas_hazard: HeavyGasHazard
+var eclipse_hazard: EclipseHazard
+var flood_hazard: FloodHazard
 var gas_renderer: GasRenderer
+var water_renderer: WaterRenderer
+var swarm_renderer: SwarmRenderer
+var eclipse_visuals: EclipseVisuals
+var static_sun: bool = false
+var _burning: bool = false
+var _bitten_timer: float = 0.0
+var _params_accum: float = 0.0
+var _swarm_accum: float = 0.0
+var _fire_accum: float = 0.0
 var telegraph: Telegraph
 var props: PropSpawner
 var sounds: SoundBank
@@ -145,7 +156,7 @@ func _build_world() -> void:
 	world_root.name = "World"
 	view.add_child(world_root)
 	world = WorldData.new(int(planet.get("world_size", 1024)), int(planet.get("world_height", 128)), Data.materials)
-	generator = ChunkGenerator.new(world_seed, planet.get("terrain", {}), Data.material_ids, world.world_height)
+	generator = ChunkGenerator.new(world_seed, planet.get("terrain", {}), Data.material_ids, world.world_height, planet.get("structures", []))
 	world.generator = generator
 	if not save_data.is_empty():
 		world.saved_chunks = SaveSystem.read_chunks()
@@ -167,6 +178,24 @@ func _find_spawn() -> Vector3:
 	var cfg: Dictionary = planet.get("spawn", {})
 	var min_above := int(cfg.get("min_height_above_lake", 6))
 	var radius := int(cfg.get("search_radius", 96))
+	match str(cfg.get("mode", "high_ground_near_lake")):
+		"flat":
+			for r in range(0, radius, 4):
+				for z in range(-r, r + 1, 4):
+					for x in range(-r, r + 1, 4):
+						if generator.is_structure_column(x, z) or generator.is_lake_column(x, z):
+							continue
+						var h := generator.height_at(x, z)
+						if absi(generator.height_at(x + 2, z) - h) <= 1 and absi(generator.height_at(x, z + 2) - h) <= 1:
+							return Vector3(x + 0.5, h + 1.1, z + 0.5)
+			return Vector3(0.5, generator.height_at(0, 0) + 1.1, 0.5)
+		"beach":
+			var coast := int(planet.get("terrain", {}).get("coast_z", 0))
+			for z in range(coast + 14, coast + radius, 3):
+				for x in range(-8, 9, 4):
+					if not generator.is_lake_column(x, z) and generator.height_at(x, z) >= generator.lake_level + min_above:
+						return Vector3(x + 0.5, generator.height_at(x, z) + 1.1, z + 0.5)
+			return Vector3(0.5, generator.height_at(0, coast + 20) + 1.1, coast + 20.5)
 	var best := Vector2i.ZERO
 	var best_score := -INF
 	var lake_level := generator.lake_level
@@ -225,6 +254,7 @@ func _build_environment() -> void:
 	base_ambient_energy = e.ambient_light_energy
 	base_sun_energy = float(mood.get("sun_energy", 1.0))
 	night_darkness = float(mood.get("night_darkness", 0.85))
+	static_sun = bool(mood.get("static_sun", false))
 
 	sun = DirectionalLight3D.new()
 	sun.name = "Sun"
@@ -338,6 +368,12 @@ func _wire_replication() -> void:
 	replicator.remote_prop_harvested.connect(func(cell: Vector2i, regrow_at: float, removed: bool) -> void:
 		props.apply_remote_harvest(cell, regrow_at, removed))
 	replicator.remote_revive.connect(_revive_at)
+	replicator.remote_damage.connect(func(amount: float, kind: String) -> void:
+		var limb: String = BodyHealth.LIMBS[kit.rng.randi_range(0, 3)]
+		kit.body.damage(limb, amount, kind, kit.rng)
+		if kind == "bite":
+			_bitten_timer = 1.5
+			player.add_shake(0.06, 0.2))
 	replicator.remote_ritual.connect(func(state: Dictionary) -> void:
 		if bool(state.get("complete", false)):
 			EventBus.toast.emit("The vigil is complete. %s returns." % str(state.get("owner_name", "Someone")), 4.0)
@@ -555,6 +591,17 @@ func _net_tick(delta: float) -> void:
 				states.append([cr.net_id, cr.kind, props.creature_seed(cr), cr.global_position, cr.rotation.y, cr.moving, cr.dead])
 		if not states.is_empty():
 			replicator.broadcast_creatures(states)
+	_params_accum += delta
+	if _params_accum >= 0.5:
+		_params_accum = 0.0
+		for m in hazards.modules:
+			if m.has_method("net_params") and not m.is_idle():
+				replicator.broadcast_hazard_params(m.id, m.call("net_params"))
+	_swarm_accum += delta
+	if _swarm_accum >= 0.2 and flood_hazard != null:
+		_swarm_accum = 0.0
+		if flood_hazard.swarm.count_alive() > 0:
+			replicator.broadcast_swarm(flood_hazard.swarm.positions())
 	_ritual_accum += delta
 	if _ritual_accum >= 1.0:
 		_ritual_accum = 0.0
@@ -695,13 +742,15 @@ func _build_hazards() -> void:
 	add_child(hazards)
 	hazards.setup(planet, world, clock, {
 		"player_position": func() -> Vector3: return player.global_position,
+		"player_positions": _all_player_positions,
 	})
-	gas_hazard = hazards.get_module("limnic_eruption") as HeavyGasHazard
-	if gas_hazard == null:
-		for m in hazards.modules:
-			if m is HeavyGasHazard:
-				gas_hazard = m
-				break
+	for m in hazards.modules:
+		if m is HeavyGasHazard and gas_hazard == null:
+			gas_hazard = m
+		elif m is EclipseHazard and eclipse_hazard == null:
+			eclipse_hazard = m
+		elif m is FloodHazard and flood_hazard == null:
+			flood_hazard = m
 	if session.is_online() and not session.is_server():
 		hazards.enabled = false
 		for m in hazards.modules:
@@ -709,6 +758,36 @@ func _build_hazards() -> void:
 	elif session.is_online():
 		EventBus.hazard_phase_changed.connect(func(id: String, phase: int, intensity: float) -> void:
 			replicator.broadcast_hazard_phase(id, phase, intensity))
+
+
+func _all_player_positions() -> Array:
+	var out: Array = [player.global_position]
+	if replicator != null:
+		for peer in replicator.peer_states:
+			if peer != session.local_peer_id and not bool(replicator.peer_states[peer].get("ghost", false)):
+				out.append(replicator.peer_states[peer]["pos"])
+	return out
+
+
+## Planet 01: permanent twilight, brightening when the moon slides.
+func _update_eclipse_lighting() -> void:
+	var f := eclipse_hazard.light_factor if eclipse_hazard != null else 0.0
+	var dir := eclipse_hazard.sun_dir() if eclipse_hazard != null else Vector3(0.3, 1, 0.2).normalized()
+	sun.look_at_from_position(dir * 10.0, Vector3.ZERO, Vector3.UP if absf(dir.y) < 0.99 else Vector3.FORWARD)
+	sun.light_energy = base_sun_energy + f * 3.2
+	sun.light_color = Color.html(str(planet.get("mood", {}).get("sun_color", "#c9b8ff"))).lerp(Color(1.0, 0.97, 0.85), f)
+	sun.shadow_enabled = true
+	var e := env.environment
+	e.ambient_light_energy = base_ambient_energy + f * 0.9
+	var sky := e.sky.sky_material as ProceduralSkyMaterial
+	var bright := Color(1.0, 0.95, 0.8)
+	sky.sky_top_color = base_sky_top.lerp(bright.darkened(0.3), f * 0.8)
+	sky.sky_horizon_color = base_sky_horizon.lerp(bright, f * 0.9)
+	var fog := base_fog.lerp(bright, f * 0.7)
+	e.fog_light_color = fog
+	sky.ground_horizon_color = fog
+	if eclipse_visuals != null:
+		eclipse_visuals.update(dir, f)
 
 
 func _build_presentation() -> void:
@@ -719,6 +798,21 @@ func _build_presentation() -> void:
 	telegraph.name = "Telegraph"
 	view.add_child(telegraph)
 	telegraph.setup(sounds, player, pipeline)
+	telegraph.hazards = hazards
+	if eclipse_hazard != null:
+		eclipse_visuals = EclipseVisuals.new()
+		eclipse_visuals.name = "EclipseSky"
+		view.add_child(eclipse_visuals)
+		eclipse_visuals.setup(player.camera)
+	if flood_hazard != null:
+		water_renderer = WaterRenderer.new()
+		water_renderer.name = "Water"
+		view.add_child(water_renderer)
+		water_renderer.setup(flood_hazard.sim, Data.palette_color(str(planet.get("palette", "02")), "haze", Color(0.3, 0.6, 0.75)).lerp(Color(0.2, 0.5, 0.7), 0.5) * Color(1, 1, 1, 0.6))
+		swarm_renderer = SwarmRenderer.new()
+		swarm_renderer.name = "Swarm"
+		view.add_child(swarm_renderer)
+		swarm_renderer.setup(MaterialFactory.voxel_model(Data.render, false), str(planet.get("palette", "02")))
 	if gas_hazard != null:
 		gas_renderer = GasRenderer.new()
 		gas_renderer.name = "GasHaze"
@@ -1065,6 +1159,38 @@ func _on_action_finished(kind: String, result: Dictionary) -> void:
 				sounds.play("dig")
 
 
+## Swinging at the ground where roaches are kills a few (server side).
+func _swat_roaches() -> void:
+	if flood_hazard == null or not session.is_server():
+		return
+	var cells: Array[Vector3i] = [Vector3i(player.global_position.floor()), Vector3i(player.global_position.floor()) + Vector3i(0, 1, 0)]
+	if player._aim.hit:
+		cells.append(player._aim.prev)
+	var killed := 0
+	for c in cells:
+		killed += flood_hazard.swarm.kill_in_cell(c, 3)
+	if killed > 0:
+		flood_hazard.swarm.prune_dead()
+		EventBus.toast.emit("Squashed %d" % killed, 0.8)
+		if kit.rng.randf() < 0.3 * killed:
+			_give_or_drop("roach_meat", 1, player.global_position)
+
+
+func _roaches_vs_fire() -> void:
+	var sw := flood_hazard.swarm
+	var any := false
+	for a in sw.agents:
+		if not a.alive:
+			continue
+		for d in [Vector3i.ZERO, Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 0, 1), Vector3i(0, 0, -1), Vector3i(0, -1, 0)]:
+			if Data.block(world.get_block(a.cell + d)).heat > 0.0:
+				a.alive = false
+				any = true
+				break
+	if any:
+		sw.prune_dead()
+
+
 func _give_or_drop(id: String, count_range: Variant, at: Vector3) -> void:
 	var n := 1
 	if count_range is Array and (count_range as Array).size() == 2:
@@ -1253,6 +1379,51 @@ func _physics_process(delta: float) -> void:
 	var exposure := 0.0
 	if gas_hazard != null:
 		exposure = gas_hazard.exposure_at(player.global_position)
+	# Planet 02: water and roaches.
+	player.swim = 0
+	if flood_hazard != null:
+		player.swim = flood_hazard.submersion(player.global_position)
+		if player.swim == 2:
+			exposure = 1.0  # no air under water
+		if session.is_server():
+			for b in flood_hazard.take_bites():
+				var cell: Vector3i = b[0]
+				var count := int(b[1])
+				var hit_local := cell == Vector3i(player.global_position.floor()) or cell == Vector3i(player.global_position.floor()) + Vector3i(0, 1, 0)
+				if hit_local and not ghost:
+					replicator.remote_damage.emit(flood_hazard.swarm.bite_damage * count, "bite")
+				elif session.is_online():
+					for peer in replicator.peer_states:
+						if peer == session.local_peer_id:
+							continue
+						var pp: Vector3 = replicator.peer_states[peer]["pos"]
+						if Vector3i(pp.floor()) == cell or Vector3i(pp.floor()) + Vector3i(0, 1, 0) == cell:
+							replicator.damage_peer(peer, flood_hazard.swarm.bite_damage * count, "bite")
+			_fire_accum += delta
+			if _fire_accum >= 0.5:
+				_fire_accum = 0.0
+				_roaches_vs_fire()
+		if swarm_renderer != null:
+			swarm_renderer.update(flood_hazard.swarm_positions())
+	if _bitten_timer > 0.0:
+		_bitten_timer -= delta
+	# Planet 01: sunlight burns exposed skin.
+	_burning = false
+	if eclipse_hazard != null and not ghost:
+		var sun_exp := eclipse_hazard.exposure_at(player.global_position)
+		if sun_exp > 0.0:
+			_burning = true
+			var dps := eclipse_hazard.burn_damage_per_second() * sun_exp
+			kit.body.damage("head", dps * dt * 0.3, "burn", kit.rng)
+			kit.body.damage("left_arm", dps * dt * 0.2, "burn", kit.rng)
+			kit.body.damage("right_arm", dps * dt * 0.2, "burn", kit.rng)
+			kit.body.damage("thorax", dps * dt * 0.3, "burn", kit.rng)
+		if session.is_server() and props != null and eclipse_hazard.phase == HazardModule.Phase.ACTIVE:
+			for cr in props.creatures:
+				if is_instance_valid(cr) and not cr.dead and eclipse_hazard.sim.exposure(cr.global_position, 0.8) >= eclipse_hazard.sim.burn_threshold:
+					cr.vitals.damage(eclipse_hazard.burn_damage_per_second() * dt * 0.8, "burn")
+					if not cr.vitals.alive:
+						cr.die("burn")
 	vitals.breathe(kit.filtered_gas(exposure, dt), dt)
 	var dt_game := dt * clock.game_seconds_per_second()
 	vitals.metabolize(dt_game, {"ambient": ambient_temperature(), "sheltered": is_sheltered(), "heat_source": heat_near_player()})
@@ -1291,6 +1462,9 @@ func _physics_process(delta: float) -> void:
 		v["breather"] = kit.breather_active
 		v["filter"] = kit.filter_seconds
 		v["poisoned"] = kit.body.has_effect("poison")
+		v["burning"] = _burning
+		v["swim"] = player.swim
+		v["bitten"] = _bitten_timer > 0.0
 		EventBus.vitals_changed.emit(v)
 
 
@@ -1315,6 +1489,14 @@ func _finish(won: bool, cause: String = "") -> void:
 
 
 func _exit_tree() -> void:
+	if verbose and gas_hazard == null and hazards != null and not hazards.modules.is_empty():
+		var m := hazards.modules[0]
+		var extra := ""
+		if eclipse_hazard != null:
+			extra = "burned blocks %d" % eclipse_hazard.burned_total
+		elif flood_hazard != null:
+			extra = "peak level %.1f (base %.1f), wet cells %d, roaches %d alive, bites %d" % [flood_hazard.peak_level, flood_hazard.sim.base_level, flood_hazard.sim.wet.size(), flood_hazard.swarm.count_alive(), flood_hazard.bites_total]
+		print("[run] summary: hazard %s events %d phase %s | %s | props %d, creatures %d | body %.0f/%.0f alive %s" % [m.id, m.events_so_far, HazardModule.Phase.keys()[m.phase], extra, props.prop_count(), props.creatures.size(), kit.body.total_hp(), kit.body.total_max(), str(kit.body.alive)])
 	if verbose and gas_hazard != null:
 		var dead := 0
 		for cr in props.creatures:
@@ -1341,6 +1523,14 @@ func _process(_delta: float) -> void:
 	if verbose and Game.args.has("savetest") and _frame == 30:
 		clock.day = 2
 		print("[savetest] save -> %s" % error_string(save_game()))
+	if verbose and _frame % 20 == 0 and gas_hazard == null and hazards != null and not hazards.modules.is_empty():
+		var m := hazards.modules[0]
+		var extra := ""
+		if eclipse_hazard != null:
+			extra = "light %.2f exposure %.2f burned %d" % [eclipse_hazard.light_factor, eclipse_hazard.exposure_at(player.global_position), eclipse_hazard.burned_total]
+		elif flood_hazard != null:
+			extra = "level %.1f wet %d swim %d roaches %d bites %d" % [flood_hazard.sim.level, flood_hazard.sim.wet.size(), player.swim, flood_hazard.swarm.count_alive(), flood_hazard.bites_total]
+		print("[run] frame %d: %s | %s %s t=%.1f | %s | hp %.0f" % [_frame, clock.clock_text(), m.id, HazardModule.Phase.keys()[m.phase], m.phase_time, extra, kit.body.total_hp()])
 	if verbose and _frame % 20 == 0 and gas_hazard != null:
 		print("[run] frame %d: %s | hazard %s t=%.1f cells=%d sources=%d | exposure %.2f o2 %.2f hp %.0f" % [
 			_frame, clock.clock_text(), HazardModule.Phase.keys()[gas_hazard.phase], gas_hazard.phase_time,
@@ -1352,7 +1542,10 @@ func _process(_delta: float) -> void:
 	if hud != null and clock != null:
 		hud.set_clock_text(clock.clock_text())
 	if sun != null and clock != null:
-		_update_day_night()
+		if static_sun:
+			_update_eclipse_lighting()
+		else:
+			_update_day_night()
 	if ended:
 		if Input.is_action_just_pressed("restart"):
 			Game.start_run(planet_id, mode_id, world_seed + 1)
@@ -1365,6 +1558,8 @@ func _process(_delta: float) -> void:
 		_toggle_screen(health_ui)
 	elif Input.is_action_just_pressed("crafting"):
 		_toggle_screen(crafting_ui)
+	if Input.is_action_just_pressed("dig") and player.input_enabled and not ghost and flood_hazard != null:
+		_swat_roaches()
 	if Input.is_action_just_pressed("debug_time_scale") and clock != null:
 		clock.time_scale = 1.0 if clock.time_scale > 1.0 else 20.0
 		EventBus.toast.emit("time x%d" % int(clock.time_scale), 1.5)

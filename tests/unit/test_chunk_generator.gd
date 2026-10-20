@@ -55,3 +55,32 @@ func test_lakes_exist_and_hold_fluid() -> void:
 				if checked >= 3:
 					return
 	assert_true(found, "at least one lake column within 512x512")
+
+
+func test_farmland_and_beach_types_with_structures() -> void:
+	var p01 := Data.planet("01")
+	var g := ChunkGenerator.new(5, p01["terrain"], Data.material_ids, 128, p01.get("structures", []))
+	assert_eq(g.terrain_type, "farmland")
+	assert_false(g.is_lake_column(10, 10), "no lakes on farmland")
+	var h := g.height_at(10, 10)
+	assert_true(h > 40 and h < 56, "flat farmland height %d" % h)
+	# Structures are deterministic and show up in generated chunks somewhere nearby.
+	var found_structure := false
+	for cz in range(-6, 6):
+		for cx in range(-6, 6):
+			if g.is_structure_column(cx * 16 + 8, cz * 16 + 8):
+				found_structure = true
+	assert_true(found_structure, "a farmhouse or barn within 96 blocks")
+	var g2 := ChunkGenerator.new(5, p01["terrain"], Data.material_ids, 128, p01.get("structures", []))
+	assert_eq(g.generate(Vector3i(1, 3, 1)).blocks, g2.generate(Vector3i(1, 3, 1)).blocks, "structures are deterministic")
+	var p02 := Data.planet("02")
+	var b := ChunkGenerator.new(5, p02["terrain"], Data.material_ids, 128)
+	assert_eq(b.terrain_type, "beach")
+	assert_true(b.is_lake_column(0, -20), "sea below the coast")
+	assert_false(b.is_lake_column(0, 40), "dry beach above the coast")
+	assert_gt(b.height_at(0, 60), b.height_at(0, 10), "land rises away from the sea")
+	var w := WorldData.new(1024, 128, Data.materials)
+	w.generator = b
+	for cy in 8:
+		w.get_or_generate_chunk(Vector3i(0, cy, -2))
+	assert_eq(w.get_block(Vector3i(3, b.lake_level, -20)), Data.block_id("sea_water"), "sea water at sea level")

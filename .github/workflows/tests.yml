@@ -19,7 +19,7 @@ jobs:
         run: tools/godot.sh --headless --path . --import || true
       - name: Unit tests
         run: tools/test.sh
-      - name: Smoke boot
-        run: tools/smoke.sh 04
+      - name: Smoke boot (all planets)
+        run: tools/smoke.sh 01 02 04
       - name: Co-op smoke (host + client)
         run: tools/nettest.sh

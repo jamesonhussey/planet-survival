@@ -287,6 +287,14 @@ func _on_vitals(v: Dictionary) -> void:
 		bits.append("OVERHEATING")
 	if bool(v.get("poisoned", false)):
 		bits.append("POISONED")
+	if bool(v.get("burning", false)):
+		bits.append("BURNING")
+	if int(v.get("swim", 0)) == 2:
+		bits.append("DROWNING")
+	elif int(v.get("swim", 0)) == 1:
+		bits.append("SWIMMING")
+	if bool(v.get("bitten", false)):
+		bits.append("ROACHES")
 	status_label.text = "  ".join(bits)
 
 

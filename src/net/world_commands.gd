@@ -66,7 +66,10 @@ func _dig(peer: int, cmd: Dictionary) -> void:
 	if pos.y == 0:
 		command_rejected.emit(peer, cmd, "bedrock")
 		return
-	if world.set_block(pos, 0):
+	world.edit_actor = peer
+	var changed := world.set_block(pos, 0)
+	world.edit_actor = 0
+	if changed:
 		block_dug.emit(peer, pos, id)
 		var kit := _kit(peer)
 		if kit != null and mp.drop != "":
@@ -102,7 +105,10 @@ func _place(peer: int, cmd: Dictionary) -> void:
 		if item_id == "" or kit.equipment.count_of(item_id) < 1:
 			command_rejected.emit(peer, cmd, "no %s left" % mat_name)
 			return
-	if world.set_block(pos, block_id):
+	world.edit_actor = peer
+	var changed := world.set_block(pos, block_id)
+	world.edit_actor = 0
+	if changed:
 		if kit != null:
 			kit.equipment.consume(item_id, 1)
 		block_placed.emit(peer, pos, block_id)

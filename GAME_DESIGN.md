@@ -54,11 +54,17 @@ Lush hills with still lakes (`co2_water`). **Rule:** a lake "breathes out" a hea
 - Escalation: `interval_days 2.0 − 0.02/day (min 0.5)`, `intensity 1.0 + 0.03/day (max 3.0)`; intensity scales emission and active duration.
 - Grazers wander the hills and suffocate in pooled gas (greyed, tipped over) — read the corpses.
 
-### 01 — The Eclipse Planet (M5)
-Permanent twilight under a moon; periodic sun exposure. **Rule:** `LightRaySim` traces straight lines from the sun; transmitted light accumulates `1 − opacity` through blocks; exposed surfaces/entities burn. Farmhouse shadows of the dead on barn walls.
+### 01 — The Eclipse Planet (M5, playable)
+Permanent purple twilight under a moon; cracked farmland with fissures and dry-grass patches, dead trees, stone farmhouses with plank/thatch roofs and a stone-lined cellar, barns with the shadows of people burned into their west walls (`scorched_stone`). **Rule:** `LightRaySim` marches a line from any cell toward the sun; each block multiplies the light by `1 − opacity` (stone 0, glass 0.9, water 0.5 per layer). Light above `burn_threshold` (0.35) burns: 9 HP/s × intensity to head, thorax and arms; blocks with `flammability ≥ 0.6` (thatch, planks, leaves) in the sun burn away. Creatures burn too.
+- Telegraph (60 s): the moon's edge glows (light factor ramps to 25%), rumble, tremor, birds, "Get under stone", second tremor; the corona grows and the moon disc slides aside; the sky and fog brighten toward white-gold; screen tints warm during the active phase.
+- Solutions from the rules: stone or dirt roofs, cellars (the farmhouse cellar is reachable by its stair hole, which the sun cannot look down at a 62° angle), digging in, glass-roofed rooms are *not* safe, thatch roofs burn off mid-event, a pool of water over a pit halves the light per layer, timing excursions by the sun's slow azimuth drift.
+- Night/day is replaced by the eclipse (`mood.static_sun`): cold (6 °C day / −2 night), so fires matter here twice.
+- Escalation: `interval 1.6 − 0.012/day (min 0.45)`, `intensity 1.0 + 0.025/day (max 2.5)` (longer, hotter exposure).
 
-### 02 — The Beach Planet (M5)
-Pleasant beach; periodic storm flood plus roach swarm. **Rules:** `FluidSim` raises a water level and fills non-waterproof/open cells below it (sealed waterproof volumes stay dry; `wave_force` vs `strength` destroys weak blocks; `buoyancy` floats rafts). `SwarmSim` paths roaches to the nearest dry cells; they squeeze through non-airtight solids slowly.
+### 02 — The Beach Planet (M5, playable)
+Endless beach: sea for z < 0, sand rising inland with dunes and tidal pools, palms (logs + coconuts), shell clusters (shellfish), small grazers. Hot (30/19 °C), thirsty. **Rules:** `FluidSim` keeps one water level; every open cell below it that connects to the outside through non-waterproof cells is wet (sand, gravel, thatch and planks let water through; stone, brick, clay, glass hold it back; a sealed waterproof room stays dry). While the surge rises, `wave_force` (2.5 + 1.5 per intensity) vs block `strength` washes away sand, thatch, glass. Submerged to the head = no air. `SwarmSim` roaches come out of the sand at the water line and crawl along any surface toward warm bodies, through air freely and through leaky solids at quarter speed; only airtight blocks stop them; they bite limbs (cut damage, bleeds), die next to fire, and can be squashed (LMB) for roach meat.
+- Telegraph (70 s): the tide pulls out 2 blocks, bruise-coloured sky, rumble, birds, tremor, "Something is moving under the sand". Active (120 s): the sea rises 9 blocks (+2 per intensity) over the first 40%, then holds; roaches spawn as long as the water rises. Recovery (90 s): the water goes back, the swarm thins.
+- Solutions from the rules: stilts above the peak, a sealed brick/stone/clay room (airtight keeps roaches out, waterproof keeps water out), towers, fire rings, decoy warm spots (future: lanterns), rafts (future: buoyancy).
 
 ### 03 — The Giants Planet (M7)
 Mostly benign giants. **Rule:** `CrushSim` applies `crush_force` under each footfall to blocks (`strength`) and `crushable` entities; tremor telegraph scales with distance. Giants ignore players unless provoked and may be useful.
@@ -82,6 +88,6 @@ PS1 / liminal: 3D rendered to a 480×270 SubViewport, nearest upscale, Bayer 4×
 2. ✅ Tarkov inventory (grid, rotation, nested containers, weight, examine, quick slots, pickups) + body-part health, status effects, meds with use times, health screen, fall damage, breather mask.
 3. ✅ Survival loop: hunger/thirst/temperature/stamina, food & spoilage & cooking, crafting from `recipes.json`, campfire, harvesting, hunting, day/night, planet select, pause menu, save/load, export presets + build scripts.
 4. ✅ Co-op foundation (ENet host/join, replication, remote avatars, ghost + Revival Ritual, `tools/nettest.sh`).
-5. Planets 01 and 02 (light ray; flood + swarm).
+5. ✅ Planets 01 and 02 (light ray; flood + swarm), structures, new props, swimming/drowning, burns, bites.
 6. NPCs, villages, enemies for 01/02/04.
 7. Planet 03, escalation balancing, polish, GodotSteam (achievements, cloud saves, Steam lobbies), release checklist; infinite-world switch evaluated.

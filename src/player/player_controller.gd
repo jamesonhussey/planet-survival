@@ -45,6 +45,8 @@ var interact_hit: Dictionary = {}
 var sprint_allowed: bool = true
 ## Dead in co-op: floats, watches, cannot touch the world.
 var ghost: bool = false
+## 0 dry, 1 wading/swimming, 2 head under water (set by the run from the flood sim).
+var swim: int = 0
 var sprinting: bool = false
 var _attack_cooldown: float = 0.0
 signal hotbar_changed(index: int)
@@ -183,7 +185,12 @@ func _physics_process(delta: float) -> void:
 		elif input_enabled and Input.is_action_pressed("crouch"):
 			speed = CROUCH_SPEED
 		speed *= speed_multiplier
-		if not is_on_floor():
+		if swim > 0:
+			speed *= 0.55
+			# Buoyancy: sink slowly, swim up while holding jump.
+			var up := input_enabled and Input.is_action_pressed("jump")
+			velocity.y = move_toward(velocity.y, (2.6 if up else (-0.6 if swim == 2 else -1.2)), 12.0 * delta)
+		elif not is_on_floor():
 			velocity.y -= GRAVITY * delta
 		elif input_enabled and Input.is_action_just_pressed("jump"):
 			velocity.y = JUMP_VELOCITY
@@ -193,7 +200,7 @@ func _physics_process(delta: float) -> void:
 		var vy_before := velocity.y
 		move_and_slide()
 		var on_floor := is_on_floor()
-		if on_floor and not _was_on_floor and vy_before < -1.0:
+		if on_floor and not _was_on_floor and vy_before < -1.0 and swim == 0:
 			landed.emit(-vy_before)
 		_was_on_floor = on_floor
 		# Safety: never fall out of the world.

@@ -8,6 +8,7 @@ extends Node3D
 var sounds: SoundBank
 var player: PlayerController
 var pipeline: PS1Pipeline
+var hazards: HazardDirector = null
 var _bubble_nodes: Array[CPUParticles3D] = []
 var _bubble_mat: StandardMaterial3D
 
@@ -60,7 +61,13 @@ func _on_phase(_hazard_id: String, phase: int, _intensity: float) -> void:
 			if sounds != null:
 				sounds.stop("deep_rumble")
 			if pipeline != null:
-				pipeline.set_tint(Color(0.85, 1.0, 0.75), 0.25)
+				var tint := Color(0.85, 1.0, 0.75)
+				var amount := 0.25
+				var m: HazardModule = hazards.get_module(_hazard_id) if hazards != null else null
+				if m != null and m.cfg.has("active_tint"):
+					tint = Color.html(str(m.cfg["active_tint"]))
+					amount = float(m.cfg.get("active_tint_amount", 0.25))
+				pipeline.set_tint(tint, amount)
 		HazardModule.Phase.RECOVERY:
 			_clear_bubbles()
 			if sounds != null:

@@ -381,3 +381,46 @@ func send_place_tag(cairn_pos: Vector3i, owner: int, owner_name: String) -> void
 func rpc_place_tag(cairn_pos: Vector3i, owner: int, owner_name: String) -> void:
 	if is_server():
 		client_place_tag.emit(multiplayer.get_remote_sender_id(), cairn_pos, owner, owner_name)
+
+
+# ---- hazard parameters and swarm (server -> clients) ----
+
+func broadcast_hazard_params(hazard_id: String, params: Dictionary) -> void:
+	for p in _ids_except_self():
+		rpc_hazard_params.rpc_id(p, hazard_id, params)
+
+
+@rpc("authority", "call_remote", "unreliable_ordered")
+func rpc_hazard_params(hazard_id: String, params: Dictionary) -> void:
+	var m: HazardModule = run.hazards.get_module(hazard_id)
+	if m != null and m.has_method("apply_remote_params"):
+		m.apply_remote_params(params)
+
+
+func broadcast_swarm(positions: PackedVector3Array) -> void:
+	for p in _ids_except_self():
+		rpc_swarm.rpc_id(p, positions)
+
+
+@rpc("authority", "call_remote", "unreliable_ordered")
+func rpc_swarm(positions: PackedVector3Array) -> void:
+	for m in run.hazards.modules:
+		if m is FloodHazard:
+			(m as FloodHazard).swarm_positions_remote = positions
+
+
+# ---- server -> one client: damage (swarm bites, burns computed server-side) ----
+
+signal remote_damage(amount: float, kind: String)
+
+
+func damage_peer(peer: int, amount: float, kind: String) -> void:
+	if peer == Net.local_id():
+		remote_damage.emit(amount, kind)
+	else:
+		rpc_damage.rpc_id(peer, amount, kind)
+
+
+@rpc("authority", "call_remote", "reliable")
+func rpc_damage(amount: float, kind: String) -> void:
+	remote_damage.emit(amount, kind)

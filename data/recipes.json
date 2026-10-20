@@ -263,6 +263,25 @@
       "station": "",
       "time": 6.0,
       "desc": "For bringing a friend back. Needs a fire beside it through one full night."
+    },
+    {
+      "id": "shellfish_cooked",
+      "name": "Steamed Shellfish",
+      "in": [
+        {
+          "id": "shellfish",
+          "count": 2
+        }
+      ],
+      "out": [
+        {
+          "id": "shellfish_cooked",
+          "count": 2
+        }
+      ],
+      "station": "campfire",
+      "time": 3.0,
+      "desc": "Steam them open."
     }
   ]
 }
