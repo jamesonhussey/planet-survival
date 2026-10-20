@@ -233,6 +233,20 @@ func _structure_at(kind: String, cfg: Dictionary, scx: int, scz: int) -> Diction
 		var margin := 3
 		var ox := scx * cell + margin + rng.randi_range(0, maxi(0, cell - fp.x - 2 * margin))
 		var oz := scz * cell + margin + rng.randi_range(0, maxi(0, cell - fp.y - 2 * margin))
+		var prefer := str(cfg.get("prefer", ""))
+		if prefer == "high":
+			var best_h := -1
+			for i in 10:
+				var tx := scx * cell + margin + rng.randi_range(0, maxi(0, cell - fp.x - 2 * margin))
+				var tz := scz * cell + margin + rng.randi_range(0, maxi(0, cell - fp.y - 2 * margin))
+				var th := height_at(tx + fp.x / 2, tz + fp.y / 2)
+				if th > best_h and not is_lake_column(tx + fp.x / 2, tz + fp.y / 2):
+					best_h = th
+					ox = tx
+					oz = tz
+		elif prefer == "coast":
+			var coast := int(terrain.get("coast_z", 0))
+			oz = coast + 6 + rng.randi_range(0, 18)
 		# Floor height: the median-ish terrain height under the footprint.
 		var hs: Array[int] = []
 		for z in range(0, fp.y, 2):
@@ -242,7 +256,8 @@ func _structure_at(kind: String, cfg: Dictionary, scx: int, scz: int) -> Diction
 		var base_y := hs[hs.size() / 2]
 		if not is_lake_column(ox + fp.x / 2, oz + fp.y / 2):
 			var blocks := StructureGen.build(kind, Vector3i(ox, base_y, oz), rng, material_ids, height_at)
-			result = {"blocks": blocks, "rect": Rect2i(ox - 1, oz - 1, fp.x + 2, fp.y + 2), "kind": kind}
+			result = {"blocks": blocks, "rect": Rect2i(ox - 1, oz - 1, fp.x + 2, fp.y + 2), "kind": kind, "key": key,
+				"npcs": StructureGen.npc_points(kind, Vector3i(ox, base_y, oz)) if cfg.has("npcs") else [], "npc_kind": str(cfg.get("npcs", ""))}
 	_cache_mutex.lock()
 	if _structure_cache.size() > 512:
 		_structure_cache.clear()
@@ -331,3 +346,9 @@ func generate(cpos: Vector3i) -> Chunk:
 	c.generated = true
 	c.dirty = count > 0
 	return c
+
+
+## Structures touching a chunk column (for NPC spawning), each with key,
+## kind, rect, npcs and npc_kind.
+func structures_near_chunk(cx: int, cz: int) -> Array:
+	return _structures_for_chunk(cx, cz)

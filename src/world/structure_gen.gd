@@ -13,7 +13,33 @@ static func build(kind: String, origin: Vector3i, rng: RandomNumberGenerator, id
 			return _farmhouse(origin, rng, ids, heights)
 		"barn":
 			return _barn(origin, rng, ids, heights)
+		"hilltop_camp":
+			return _hilltop_camp(origin, rng, ids, heights)
+		"stilt_village":
+			return _stilt_village(origin, rng, ids, heights)
 	return {}
+
+
+## NPC spawn/home points for a structure: [{"pos": Vector3i, "home": Vector3i}]
+## in world coordinates. The farmhouse cellar, the camp huts, the stilt huts.
+static func npc_points(kind: String, origin: Vector3i) -> Array:
+	var o := origin
+	match kind:
+		"farmhouse":
+			var cx := o.x + 8 - 4
+			var cz := o.z + 7 - 4
+			return [{"pos": Vector3i(cx + 1, o.y - 3, cz + 1), "home": Vector3i(cx + 1, o.y - 3, cz + 1)}]
+		"hilltop_camp":
+			var out: Array = []
+			for h in _camp_huts(o):
+				out.append({"pos": Vector3i(h.x + 1, o.y + 1, h.z + 1), "home": Vector3i(h.x + 1, o.y + 1, h.z + 1)})
+			return out
+		"stilt_village":
+			var out2: Array = []
+			for h in _stilt_huts(o):
+				out2.append({"pos": Vector3i(h.x + 1, o.y + 7, h.z + 1), "home": Vector3i(h.x + 1, o.y + 7, h.z + 1)})
+			return out2
+	return []
 
 
 ## Footprint (x,z size) so the generator can reserve space and the prop
@@ -22,7 +48,17 @@ static func footprint(kind: String) -> Vector2i:
 	match kind:
 		"farmhouse": return Vector2i(8, 7)
 		"barn": return Vector2i(12, 9)
+		"hilltop_camp": return Vector2i(16, 16)
+		"stilt_village": return Vector2i(20, 14)
 	return Vector2i(1, 1)
+
+
+static func _camp_huts(o: Vector3i) -> Array[Vector3i]:
+	return [Vector3i(o.x + 1, o.y, o.z + 1), Vector3i(o.x + 11, o.y, o.z + 1), Vector3i(o.x + 1, o.y, o.z + 11), Vector3i(o.x + 11, o.y, o.z + 11)]
+
+
+static func _stilt_huts(o: Vector3i) -> Array[Vector3i]:
+	return [Vector3i(o.x + 1, o.y, o.z + 1), Vector3i(o.x + 13, o.y, o.z + 1), Vector3i(o.x + 7, o.y, o.z + 8)]
 
 
 static func _id(ids: Dictionary, name: String, fallback: int = 3) -> int:
@@ -142,4 +178,82 @@ static func _barn(o: Vector3i, rng: RandomNumberGenerator, ids: Dictionary, heig
 			out[Vector3i(o.x, o.y + y, o.z + fz)] = scorched
 		if rng.randf() < 0.5 and fz + 1 < d - 1:
 			out[Vector3i(o.x, o.y + 3, o.z + fz + 1)] = scorched
+	return out
+
+
+## Planet 04: four small clay huts around a fire on a levelled hilltop. Clay
+## and brick are airtight: the camp survives an eruption if the doors are
+## shut (they are open by design; the hint is the altitude).
+static func _hilltop_camp(o: Vector3i, rng: RandomNumberGenerator, ids: Dictionary, heights: Callable) -> Dictionary:
+	var out: Dictionary = {}
+	var clay := _id(ids, "clay", 5)
+	var brick := _id(ids, "brick", 8)
+	var planks := _id(ids, "planks", 6)
+	var fire := _id(ids, "campfire", 15)
+	var dirt := _id(ids, "dirt", 1)
+	_prepare_ground(out, o, 16, 16, 6, ids, heights)
+	for z in 16:
+		for x in 16:
+			out[Vector3i(o.x + x, o.y, o.z + z)] = dirt
+	for h in _camp_huts(o):
+		var wall := brick if rng.randf() < 0.5 else clay
+		for z in 4:
+			for x in 4:
+				for y in range(1, 4):
+					var edge := x == 0 or x == 3 or z == 0 or z == 3
+					if edge:
+						out[Vector3i(h.x + x, h.y + y, h.z + z)] = wall
+				out[Vector3i(h.x + x, h.y + 4, h.z + z)] = planks
+		# door facing the fire (toward the centre)
+		var dx := 3 if h.x < o.x + 8 else 0
+		var dz := 1 + rng.randi_range(0, 1)
+		out[Vector3i(h.x + dx, h.y + 1, h.z + dz)] = 0
+		out[Vector3i(h.x + dx, h.y + 2, h.z + dz)] = 0
+	out[Vector3i(o.x + 8, o.y + 1, o.z + 8)] = fire
+	for p in [Vector3i(o.x + 7, o.y + 1, o.z + 7), Vector3i(o.x + 9, o.y + 1, o.z + 9), Vector3i(o.x + 7, o.y + 1, o.z + 9), Vector3i(o.x + 9, o.y + 1, o.z + 7)]:
+		out[p] = _id(ids, "cobble", 3) if ids.has("cobble") else _id(ids, "stone", 3)
+	return out
+
+
+## Planet 02: three plank huts on log stilts six blocks up, linked by
+## walkways. Planks leak water and roaches: the hint is the height and the
+## brick corner room on the largest hut.
+static func _stilt_village(o: Vector3i, rng: RandomNumberGenerator, ids: Dictionary, heights: Callable) -> Dictionary:
+	var out: Dictionary = {}
+	var planks := _id(ids, "planks", 6)
+	var log := _id(ids, "log", 11)
+	var brick := _id(ids, "brick", 8)
+	var thatch := _id(ids, "thatch", 9)
+	var deck := o.y + 6
+	var huts := _stilt_huts(o)
+	for i in huts.size():
+		var h := huts[i]
+		var w := 6 if i == 2 else 5
+		# stilts
+		for p in [Vector2i(0, 0), Vector2i(w - 1, 0), Vector2i(0, w - 1), Vector2i(w - 1, w - 1)]:
+			var th: int = heights.call(h.x + p.x, h.z + p.y)
+			for y in range(th + 1, deck + 1):
+				out[Vector3i(h.x + p.x, y, h.z + p.y)] = log
+		for z in w:
+			for x in w:
+				out[Vector3i(h.x + x, deck, h.z + z)] = planks
+				var edge := x == 0 or x == w - 1 or z == 0 or z == w - 1
+				if edge:
+					for y in range(1, 3):
+						out[Vector3i(h.x + x, deck + y, h.z + z)] = brick if (i == 2 and x < 3 and z < 3) else planks
+				out[Vector3i(h.x + x, deck + 3, h.z + z)] = thatch
+		out[Vector3i(h.x + 2, deck + 1, h.z)] = 0
+		out[Vector3i(h.x + 2, deck + 2, h.z)] = 0
+	# walkways between hut 0 -> 2 and 1 -> 2
+	for x in range(huts[0].x + 5, huts[2].x + 1):
+		out[Vector3i(x, deck, huts[0].z + 2)] = planks
+	for z in range(huts[0].z + 2, huts[2].z + 1):
+		out[Vector3i(huts[2].x + 2, deck, z)] = planks
+	for x in range(huts[2].x + 6, huts[1].x + 1):
+		out[Vector3i(x, deck, huts[1].z + 2)] = planks
+	for z in range(huts[1].z + 2, huts[2].z + 1):
+		out[Vector3i(huts[2].x + 4, deck, z)] = planks
+	# ladder: a column of planks steps up to hut 0
+	for y in range(o.y + 1, deck):
+		out[Vector3i(huts[0].x - 1, y, huts[0].z + 2 + (y % 2))] = planks
 	return out

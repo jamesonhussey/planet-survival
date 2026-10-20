@@ -1,9 +1,9 @@
 class_name Creature
 extends CharacterBody3D
-## Base creature: a PartRig body with rigid-part animation and a tiny
-## wander brain. Creatures obey the same hazard rules as the player: this
-## one breathes, so it suffocates in gas and ends up as a dead-animal warning
-## sign on low ground. Server-side logic; presentation is local.
+## Base creature: a PartRig body with rigid-part animation and a brain hook.
+## Creatures obey the same hazard rules as the player (breathe, burn,
+## drown). Server-side logic; clients mirror with `remote = true`.
+## Subclasses (Villager, Enemy) override _brain().
 
 var rig_root: Node3D
 var parts: Dictionary = {}
@@ -25,6 +25,8 @@ var net_id: int = 0
 var remote: bool = false
 var _remote_target: Vector3
 var _remote_yaw: float = 0.0
+var rig_height: float = 1.0
+var gait_scale: float = 1.0
 
 signal died(creature: Creature, cause: String)
 
@@ -35,6 +37,7 @@ func setup(rig: PartRig, material: Material, seed: int, creature_kind: String = 
 	rig_root = rig.instantiate(material)
 	add_child(rig_root)
 	parts = PartRig.part_nodes(rig_root)
+	rig_height = rig.height
 	collision_layer = 4
 	collision_mask = 1
 	var cs := CollisionShape3D.new()
@@ -68,6 +71,7 @@ func hit(amount: float, from: Vector3, cause: String = "blunt") -> bool:
 	var away := (global_position - from)
 	away.y = 0.0
 	wander_dir = away.normalized() if away.length() > 0.01 else Vector3(1, 0, 0)
+	_on_hit(from)
 	if not vitals.alive:
 		die(cause)
 		return true
@@ -81,7 +85,7 @@ func die(cause: String) -> void:
 	moving = false
 	velocity = Vector3.ZERO
 	died.emit(self, cause)
-	# Grey the fur so the corpse reads at a distance.
+	# Grey the body so the corpse reads at a distance.
 	for n in parts.values():
 		var mi := (n as Node3D).get_node_or_null("Mesh") as MeshInstance3D
 		if mi != null:
@@ -124,6 +128,22 @@ func _physics_process(delta: float) -> void:
 		velocity.z = 0.0
 		move_and_slide()
 		return
+	_brain(delta)
+	var fast := vitals.suffocating or flee_timer > 0.0
+	var target := wander_dir * speed * (2.2 if fast else 1.0) * gait_scale if moving else Vector3.ZERO
+	velocity.x = move_toward(velocity.x, target.x, 6.0 * delta)
+	velocity.z = move_toward(velocity.z, target.z, 6.0 * delta)
+	if moving and wander_dir.length_squared() > 0.0:
+		rotation.y = lerp_angle(rotation.y, atan2(-wander_dir.z, wander_dir.x), 5.0 * delta)
+	# Step up single blocks while moving.
+	if moving and is_on_floor() and is_on_wall():
+		velocity.y = 6.0
+	move_and_slide()
+	_animate(delta)
+
+
+## Default brain: wander, flee when hit or suffocating.
+func _brain(delta: float) -> void:
 	wander_timer -= delta
 	if wander_timer <= 0.0:
 		moving = not moving if rng.randf() < 0.6 else moving
@@ -136,16 +156,24 @@ func _physics_process(delta: float) -> void:
 		moving = true
 	if vitals.suffocating:
 		moving = true
-	var fast := vitals.suffocating or flee_timer > 0.0
-	var target := wander_dir * speed * (2.2 if fast else 1.0) if moving else Vector3.ZERO
-	velocity.x = move_toward(velocity.x, target.x, 6.0 * delta)
-	velocity.z = move_toward(velocity.z, target.z, 6.0 * delta)
-	if moving and wander_dir.length_squared() > 0.0:
-		rotation.y = lerp_angle(rotation.y, atan2(-wander_dir.z, wander_dir.x), 5.0 * delta)
-	move_and_slide()
-	if is_on_wall() and moving:
+	if is_on_wall() and moving and flee_timer <= 0.0 and is_inside_tree():
 		wander_dir = -wander_dir
-	_animate(delta)
+
+
+func _on_hit(_from: Vector3) -> void:
+	pass
+
+
+## Steer toward a world position (xz) and mark moving. True when arrived.
+func go_toward(target: Vector3, stop_distance: float = 0.6) -> bool:
+	var d := target - global_position
+	d.y = 0.0
+	if d.length() <= stop_distance:
+		moving = false
+		return true
+	wander_dir = d.normalized()
+	moving = true
+	return false
 
 
 func _animate(delta: float) -> void:
@@ -156,18 +184,28 @@ func _animate(delta: float) -> void:
 	_rot("leg_br", swing)
 	_rot("leg_fr", -swing)
 	_rot("leg_bl", -swing)
+	_rot_x("leg_l", swing)
+	_rot_x("leg_r", -swing)
+	_rot_x("arm_l", -swing * 0.7)
+	_rot_x("arm_r", swing * 0.7)
+	for i in 3:
+		_rot("leg_l%d" % i, swing * (1 if i % 2 == 0 else -1))
+		_rot("leg_r%d" % i, -swing * (1 if i % 2 == 0 else -1))
 	var head: Node3D = parts.get("head")
-	if head != null:
+	if head != null and parts.has("leg_fl"):
 		head.rotation.z = -0.35 - 0.25 * sin(anim_t * 0.3) if horizontal < 0.2 else -0.1
 	var tail: Node3D = parts.get("tail")
 	if tail != null:
 		tail.rotation.y = sin(anim_t * 1.7) * 0.4
-	var body: Node3D = parts.get("body")
-	if body != null and horizontal < 0.2:
-		body.position.y = body.position.y + sin(anim_t * 0.5) * 0.0005
 
 
 func _rot(part: String, angle: float) -> void:
 	var n: Node3D = parts.get(part)
 	if n != null:
 		n.rotation.z = angle
+
+
+func _rot_x(part: String, angle: float) -> void:
+	var n: Node3D = parts.get(part)
+	if n != null:
+		n.rotation.x = angle

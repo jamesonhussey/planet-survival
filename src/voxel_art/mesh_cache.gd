@@ -14,6 +14,8 @@ const GENERATORS := {
 	"dead_tree": "res://src/voxel_art/generators/dead_tree_generator.gd",
 	"shell_cluster": "res://src/voxel_art/generators/shell_cluster_generator.gd",
 	"roach": "res://src/voxel_art/generators/roach_generator.gd",
+	"gasper": "res://src/voxel_art/generators/gasper_generator.gd",
+	"crab": "res://src/voxel_art/generators/crab_generator.gd",
 }
 
 static var _cache: Dictionary = {}

@@ -1,0 +1,254 @@
+{
+  "_doc": "Villager kinds: names, lines, trades (give -> get), tasks (bring need -> reward). Villagers retreat to their home point when a hazard warning starts; a bad home kills them like anyone else.",
+  "kinds": {
+    "hill_folk": {
+      "planet": "04",
+      "names": [
+        "Oru",
+        "Tamsin",
+        "Beck",
+        "Idra",
+        "Noll",
+        "Pell"
+      ],
+      "greetings": [
+        "You climbed up. Good. Most don't."
+      ],
+      "warnings": [
+        "We camp up here because the lakes breathe. When the water bubbles, climb. Never sleep low.",
+        "The gas hugs the ground like a dog. Walls that hold air hold it out. Thatch doesn't.",
+        "The animals go first. When you see them lie down by the water, you have a minute."
+      ],
+      "lore": [
+        "There was a village on the shore once. The stones are still there, under the fog.",
+        "My grandmother said the lake was asleep for forty years. Then it wasn't."
+      ],
+      "trades": [
+        {
+          "give": {
+            "id": "fiber",
+            "count": 6
+          },
+          "get": {
+            "id": "filter",
+            "count": 1
+          }
+        },
+        {
+          "give": {
+            "id": "meat_cooked",
+            "count": 2
+          },
+          "get": {
+            "id": "brick",
+            "count": 6
+          }
+        },
+        {
+          "give": {
+            "id": "berries",
+            "count": 8
+          },
+          "get": {
+            "id": "canteen",
+            "count": 1
+          }
+        }
+      ],
+      "tasks": [
+        {
+          "id": "rope_for_camp",
+          "text": "The tents need rope. Bring me 8 fiber.",
+          "need": {
+            "id": "fiber",
+            "count": 8
+          },
+          "reward": {
+            "id": "brick",
+            "count": 8
+          },
+          "done": "Good hands. Take these; they hold air."
+        },
+        {
+          "id": "charcoal",
+          "text": "Our filters are spent. Two charcoal and I'll pay in glass.",
+          "need": {
+            "id": "charcoal",
+            "count": 2
+          },
+          "reward": {
+            "id": "glass",
+            "count": 4
+          },
+          "done": "Now we can see the lake from inside."
+        }
+      ]
+    },
+    "stilt_folk": {
+      "planet": "02",
+      "names": [
+        "Mara",
+        "Kip",
+        "Senna",
+        "Dov",
+        "Lio",
+        "Tess"
+      ],
+      "greetings": [
+        "Mind the ladder. Everything that matters is up here."
+      ],
+      "warnings": [
+        "When the tide goes out too far, it is coming back with friends. Get up high, then seal the door.",
+        "The roaches climb. Stone keeps them out; planks don't, the gaps are enough.",
+        "Fire. They hate fire. A ring of it buys you a night."
+      ],
+      "lore": [
+        "We used to live on the sand. The sand is where the roaches sleep.",
+        "The old ones say the storm counts the days with you. It gets worse as you get better."
+      ],
+      "trades": [
+        {
+          "give": {
+            "id": "coconut",
+            "count": 4
+          },
+          "get": {
+            "id": "rope",
+            "count": 2
+          }
+        },
+        {
+          "give": {
+            "id": "shellfish_cooked",
+            "count": 4
+          },
+          "get": {
+            "id": "brick",
+            "count": 6
+          }
+        },
+        {
+          "give": {
+            "id": "planks",
+            "count": 12
+          },
+          "get": {
+            "id": "glass",
+            "count": 3
+          }
+        }
+      ],
+      "tasks": [
+        {
+          "id": "shell_dinner",
+          "text": "Steam me four shellfish and I'll give you stone for a wall.",
+          "need": {
+            "id": "shellfish_cooked",
+            "count": 4
+          },
+          "reward": {
+            "id": "cobble",
+            "count": 10
+          },
+          "done": "Salt and smoke. Here, build something that holds."
+        },
+        {
+          "id": "log_run",
+          "text": "The walkway needs three logs.",
+          "need": {
+            "id": "log",
+            "count": 3
+          },
+          "reward": {
+            "id": "brick",
+            "count": 5
+          },
+          "done": "That'll hold through one more storm."
+        }
+      ]
+    },
+    "cellar_folk": {
+      "planet": "01",
+      "names": [
+        "Hesk",
+        "Mirren",
+        "Audo",
+        "Vell",
+        "Pim",
+        "Sorrel"
+      ],
+      "greetings": [
+        "Down here. Quick. You're letting the dusk in."
+      ],
+      "warnings": [
+        "When the moon's edge glows, you have a minute to get under stone. Not glass. Not wood. Stone or earth.",
+        "The shadows on the barn wall were people. They waited to see what the light was.",
+        "Dig. Dig is always right. The sun cannot look around a corner."
+      ],
+      "lore": [
+        "The farms died in one afternoon. The cellars did not.",
+        "We plant under the barn roof now, with lanterns. It tastes of nothing. It is food."
+      ],
+      "trades": [
+        {
+          "give": {
+            "id": "log",
+            "count": 3
+          },
+          "get": {
+            "id": "cobble",
+            "count": 8
+          }
+        },
+        {
+          "give": {
+            "id": "meat_cooked",
+            "count": 2
+          },
+          "get": {
+            "id": "painkillers",
+            "count": 1
+          }
+        },
+        {
+          "give": {
+            "id": "fiber",
+            "count": 10
+          },
+          "get": {
+            "id": "bandage",
+            "count": 2
+          }
+        }
+      ],
+      "tasks": [
+        {
+          "id": "cellar_stone",
+          "text": "The cellar wall is thin on the east side. Bring 6 cobble.",
+          "need": {
+            "id": "cobble",
+            "count": 6
+          },
+          "reward": {
+            "id": "medkit_small",
+            "count": 1
+          },
+          "done": "That side will hold now. Take the kit; we've used ours."
+        },
+        {
+          "id": "lantern_oil",
+          "text": "Charcoal for the lamps. Four pieces.",
+          "need": {
+            "id": "charcoal",
+            "count": 4
+          },
+          "reward": {
+            "id": "glass",
+            "count": 4
+          },
+          "done": "Light we choose, not light that chooses us."
+        }
+      ]
+    }
+  }
+}

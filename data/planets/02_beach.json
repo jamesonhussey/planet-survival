@@ -286,5 +286,28 @@
       "count": 2,
       "examined": true
     }
+  ],
+  "structures": [
+    {
+      "generator": "stilt_village",
+      "cell": 128,
+      "chance": 0.7,
+      "prefer": "coast",
+      "npcs": "stilt_folk"
+    }
+  ],
+  "enemies": [
+    {
+      "kind": "sand_crab",
+      "max": 4,
+      "spawn": {
+        "when": "always",
+        "near": "player",
+        "radius": [
+          18,
+          34
+        ]
+      }
+    }
   ]
 }

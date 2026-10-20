@@ -43,6 +43,10 @@ From orbit the player sees four planets (01–04) and picks one. Each looks liva
 | 2026-10-20 | Day/night cycle drives sun angle, sky, fog and ambient; nights reach 85% darkness on 04 | Flashlight and campfire earn their keep |
 | 2026-10-20 | Co-op over ENet: host runs the world; clients generate terrain from the seed and receive edited chunks, block edits, hazard phases, packed gas cells (2 Hz, within 64 blocks of a player), clock, creatures (5 Hz), pickups, harvests, rituals. Inventory/health/movement are client-owned; the server grants dug items and trusts placement | Friendly co-op first; the authority seam is in place to tighten later. Steam transport swaps in at M7 |
 | 2026-10-20 | Death in co-op = ghost: fly, watch, cannot act; all items plus a Survivor's Tag drop as pickups. Solo stays permadeath | Nobody sits out a session |
+| 2026-10-20 | Villages are structures the generator stamps from the seed (hilltop camp on 04, stilt village on 02, cellar farmhouse on 01), each shaped by the planet's rule so it survives the hazard on its own, and each spawns named villagers at `npcs` points when its ground loads | The village *is* the hint: live where the locals live and you learn the rule for free |
+| 2026-10-20 | Villagers are creatures: they breathe, burn and drown like everyone, go home on a hazard WARNING and stay until the all-clear, remember being dead across saves | A wiped-out village is a story the rules told, never a script |
+| 2026-10-20 | Talking (E): greetings, warnings and lore lines, trades (`give`/`get` from the kit) and one task at a time per villager kind, from `data/npcs/villagers.json`; task progress is per player and saved | Hints and a small economy without quest machinery |
+| 2026-10-20 | Enemies are data (`data/enemies.json`) tied to each planet's rule: gaspers hunt only in gas and vanish when it clears, dark hounds hunt in the dark, flee light and burn, sand crabs flee water; a planet lists which spawn when (`always`, `night`, `hazard_*`), near what (`player`, `gas`), how many | Enemies read the same properties as hazards; no bespoke monster logic per planet |
 | 2026-10-20 | Revival Ritual: craft Cairn Stones (6 cobble + rope), place the cairn, select the dead player's Tag and press E on it, keep a heat source within 3 blocks through one full night (1.25 nights for the second revive, +0.25 each); a destroyed cairn fails the vigil, a dead fire only pauses it. Revived: 60% max HP, half hunger/thirst, empty hands | Property-based (any fire, any stone), costs time and attention during the planet's own hazard |
 
 ## Planets
@@ -89,5 +93,5 @@ PS1 / liminal: 3D rendered to a 480×270 SubViewport, nearest upscale, Bayer 4×
 3. ✅ Survival loop: hunger/thirst/temperature/stamina, food & spoilage & cooking, crafting from `recipes.json`, campfire, harvesting, hunting, day/night, planet select, pause menu, save/load, export presets + build scripts.
 4. ✅ Co-op foundation (ENet host/join, replication, remote avatars, ghost + Revival Ritual, `tools/nettest.sh`).
 5. ✅ Planets 01 and 02 (light ray; flood + swarm), structures, new props, swimming/drowning, burns, bites.
-6. NPCs, villages, enemies for 01/02/04.
+6. ✅ NPCs, villages, enemies for 01/02/04: village structures, named villagers that shelter and die by the rules, dialogue (talk/trade/tasks), data-driven enemies that obey the planet's rule.
 7. Planet 03, escalation balancing, polish, GodotSteam (achievements, cloud saves, Steam lobbies), release checklist; infinite-world switch evaluated.

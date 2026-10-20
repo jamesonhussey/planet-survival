@@ -312,5 +312,28 @@
       "count": 4,
       "examined": true
     }
+  ],
+  "structures": [
+    {
+      "generator": "hilltop_camp",
+      "cell": 160,
+      "chance": 0.7,
+      "prefer": "high",
+      "npcs": "hill_folk"
+    }
+  ],
+  "enemies": [
+    {
+      "kind": "gasper",
+      "max": 3,
+      "spawn": {
+        "when": "hazard_active",
+        "near": "gas",
+        "radius": [
+          14,
+          30
+        ]
+      }
+    }
   ]
 }

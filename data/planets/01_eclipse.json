@@ -243,7 +243,8 @@
     {
       "generator": "farmhouse",
       "cell": 48,
-      "chance": 0.55
+      "chance": 0.55,
+      "npcs": "cellar_folk"
     },
     {
       "generator": "barn",
@@ -290,6 +291,20 @@
       "id": "berries",
       "count": 4,
       "examined": true
+    }
+  ],
+  "enemies": [
+    {
+      "kind": "dark_hound",
+      "max": 3,
+      "spawn": {
+        "when": "hazard_idle",
+        "near": "player",
+        "radius": [
+          22,
+          40
+        ]
+      }
     }
   ]
 }

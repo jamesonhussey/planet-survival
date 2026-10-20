@@ -36,6 +36,9 @@ signal creature_spawned(creature: Creature)
 var spawn_creatures: bool = true
 var next_creature_id: int = 1
 var creatures_by_id: Dictionary = {}
+## kind -> {"generator", "params"} for creatures that are not planet props
+## (villagers, enemies), so clients can build their mirrors.
+var kind_registry: Dictionary = {}
 
 
 func setup(world_data: WorldData, gen: ChunkGenerator, planet_cfg: Dictionary, seed: int, mat: Material, emissive: Material) -> void:
@@ -255,7 +258,12 @@ func apply_remote_creature(id: int, kind: String, seed: int, pos: Vector3, yaw: 
 			if str(p.get("generator", "")) == kind:
 				cfg = p
 				break
-		var rig := VoxelArt.rig(kind, cfg.get("params", {}), seed, palette_id)
+		var gen_name := kind
+		var params: Dictionary = cfg.get("params", {})
+		if kind_registry.has(kind):
+			gen_name = str(kind_registry[kind]["generator"])
+			params = kind_registry[kind]["params"]
+		var rig := VoxelArt.rig(gen_name, params, seed, palette_id)
 		if rig == null:
 			return
 		cr = Creature.new()
@@ -308,3 +316,19 @@ func harvested_state() -> Array:
 	for c in regrow_at.keys():
 		out.append([c.x, c.y, float(regrow_at[c]), false])
 	return out
+
+
+## Add a creature spawned elsewhere (villager, enemy) to the replicated set.
+func register_creature(cr: Creature, kind: String, variant_seed: int) -> void:
+	cr.set_meta("variant_seed", variant_seed)
+	cr.net_id = next_creature_id
+	next_creature_id += 1
+	creatures_by_id[cr.net_id] = cr
+	if not creatures.has(cr):
+		creatures.append(cr)
+	creature_spawned.emit(cr)
+
+
+func unregister_creature(cr: Creature) -> void:
+	creatures.erase(cr)
+	creatures_by_id.erase(cr.net_id)

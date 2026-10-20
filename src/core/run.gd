@@ -61,6 +61,9 @@ var vitals: Vitals
 var hud: HUD
 var inventory_ui: InventoryUI
 var health_ui: HealthScreen
+var dialogue_ui: DialogueUI
+var population: Population
+var _want_dialogue: bool = false
 var pickups_root: Node3D
 var pickups: Array[ItemPickup] = []
 var pickup_material: Material
@@ -118,6 +121,24 @@ func _ready() -> void:
 			player.fly = true
 			player.global_position = spawn_point + Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
 			player.set_look(float(Game.args.get("yaw", "0")), float(Game.args.get("pitch", "-0.15")))
+	# --village: debug camera at the nearest settlement (screenshots/tests).
+	if Game.args.has("village"):
+		var st := _nearest_village(spawn_point, 16)
+		if not st.is_empty():
+			var rect: Rect2i = st["rect"]
+			var center := Vector3(rect.position.x + rect.size.x * 0.5, 0.0, rect.position.y + rect.size.y * 0.5)
+			var edge := Vector3(rect.position.x - 6, 0.0, rect.position.y + rect.size.y * 0.5)
+			edge.y = generator.height_at(int(edge.x), int(edge.z)) + 3.0
+			center.y = generator.height_at(int(center.x), int(center.z)) + 1.0
+			player.fly = true
+			player.global_position = edge
+			var d := center - edge
+			player.set_look(atan2(-d.x, -d.z), -atan2(d.y, Vector2(d.x, d.z).length()) * 0.5)
+			streamer.set_focus([edge])
+			props.set_focus(edge)
+			print("[run] village %s at %s" % [str(st.get("kind", "")), str(rect)])
+		else:
+			print("[run] village: none within range of spawn")
 	# --ui=inventory|health: open a screen at boot (screenshots).
 	match str(Game.args.get("ui", "")):
 		"inventory": _open_screen(inventory_ui)
@@ -133,6 +154,7 @@ func _ready() -> void:
 		clock.day_fraction = clampf(float(Game.args["hour"]) / 24.0, 0.0, 0.999)
 	if str(Game.args.get("ui", "")) == "crafting":
 		_open_screen(crafting_ui)
+	_want_dialogue = str(Game.args.get("ui", "")) == "dialogue"
 	# --hurt: pre-damage the body so the health screen has something to show.
 	if Game.args.has("hurt"):
 		kit.body.damage("left_leg", 30.0, "blunt", kit.rng)
@@ -828,6 +850,7 @@ func _build_presentation() -> void:
 	props.creature_spawned.connect(_on_creature_spawned)
 	props.setup(world, generator, planet, world_seed, pickup_material, MaterialFactory.voxel_model(Data.render, true))
 	props.set_focus(spawn_point)
+	Population.fill_registry(props)
 	for cr in props.creatures:
 		_on_creature_spawned(cr)
 
@@ -864,6 +887,19 @@ func _build_presentation() -> void:
 	crafting_ui.setup(kit, recipes)
 	crafting_ui.stations_provider = stations_near_player
 	crafting_ui.closed.connect(_on_screen_closed)
+	dialogue_ui = DialogueUI.new()
+	dialogue_ui.name = "DialogueUI"
+	view.add_child(dialogue_ui)
+	dialogue_ui.setup(kit)
+	dialogue_ui.give_items = func(id: String, count: int) -> void: _give_or_drop(id, count, player.global_position)
+	dialogue_ui.closed.connect(_on_screen_closed)
+	if session.is_server():
+		population = Population.new()
+		population.name = "Population"
+		add_child(population)
+		population.setup(self, pickup_material)
+		population.enemy_attack.connect(_on_enemy_attack)
+		population.villager_spawned.connect(func(v: Villager) -> void: _on_creature_spawned(v))
 	pause_menu = PauseMenu.new()
 	pause_menu.name = "PauseMenu"
 	view.add_child(pause_menu)
@@ -887,6 +923,8 @@ func _open_screen(screen: CanvasLayer, med: ItemInstance = null) -> void:
 		health_ui.open(med)
 	elif screen == crafting_ui:
 		crafting_ui.open()
+	elif screen == dialogue_ui:
+		pass  # opened by _talk_to with its villager
 	else:
 		(screen as InventoryUI).open()
 	player.input_enabled = false
@@ -898,7 +936,7 @@ func _open_screen(screen: CanvasLayer, med: ItemInstance = null) -> void:
 
 
 func _on_screen_closed() -> void:
-	if inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open or ended:
+	if inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open or dialogue_ui.is_open or ended:
 		return
 	hud.root.visible = true
 	player.input_enabled = true
@@ -907,7 +945,7 @@ func _on_screen_closed() -> void:
 
 
 func any_screen_open() -> bool:
-	return inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open
+	return inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open or dialogue_ui.is_open
 
 
 func _open_pause() -> void:
@@ -948,6 +986,8 @@ func save_game() -> Error:
 		"hazard_events": gas_hazard.events_so_far if gas_hazard != null else 0,
 		"props": {"removed": removed, "regrow": regrow},
 		"pickups": pk,
+		"population": population.to_dict() if population != null else {},
+		"tasks": dialogue_ui.tasks.duplicate(true),
 	}
 	if Game.args.has("savetest"):
 		var cp := Vector3i(int(floor(spawn_point.x)) + 3, world.surface_y(int(floor(spawn_point.x)) + 3, int(floor(spawn_point.z))) + 1, int(floor(spawn_point.z)))
@@ -1004,6 +1044,9 @@ func _apply_save(meta: Dictionary) -> void:
 		var pos: Array = entry.get("pos", [0, 0, 0])
 		if it != null:
 			spawn_pickup(it, Vector3(float(pos[0]), float(pos[1]), float(pos[2])))
+	if population != null:
+		population.from_dict(meta.get("population", {}))
+	dialogue_ui.tasks = (meta.get("tasks", {}) as Dictionary).duplicate(true)
 	_refresh_quick()
 	EventBus.toast.emit("Loaded save: %s" % clock.clock_text(), 3.0)
 	if meta.has("debug_check"):
@@ -1016,7 +1059,7 @@ func _apply_save(meta: Dictionary) -> void:
 func _close_all_screens() -> void:
 	if pause_menu != null and pause_menu.is_open:
 		pause_menu.close()
-	for s in [inventory_ui, health_ui, crafting_ui]:
+	for s in [inventory_ui, health_ui, crafting_ui, dialogue_ui]:
 		if s.is_open:
 			s.close()
 
@@ -1036,8 +1079,12 @@ func _update_aim_text(h: VoxelRay.Hit) -> void:
 	var ih := player.interact_hit
 	if not ih.is_empty() and (not h.hit or float(ih["distance"]) < h.distance + 0.5):
 		var col: Object = ih["collider"]
+		if col is Villager:
+			var v := col as Villager
+			hud.set_aim_text("%s%s" % [v.display_name, "  (dead)" if v.dead else "  (E: talk)"])
+			return
 		if col is Creature:
-			hud.set_aim_text("%s%s  (LMB hit)" % [str((col as Creature).kind).capitalize(), " (dead)" if (col as Creature).dead else ""])
+			hud.set_aim_text("%s%s  (LMB hit)" % [str((col as Creature).kind).replace("_", " ").capitalize(), " (dead)" if (col as Creature).dead else ""])
 			return
 		var prop := props.prop_from_collider(col)
 		if prop != null:
@@ -1246,6 +1293,61 @@ func _on_attack(target: Node) -> void:
 		EventBus.toast.emit("Killed %s" % cr.kind if died else "Hit %s" % cr.kind, 0.8)
 
 
+func _nearest_village(from: Vector3, radius_chunks: int) -> Dictionary:
+	var cc := Vector2i(WorldData.floor_div(int(floor(from.x)), Chunk.SIZE), WorldData.floor_div(int(floor(from.z)), Chunk.SIZE))
+	var best: Dictionary = {}
+	var best_d := INF
+	var seen: Dictionary = {}
+	for dz in range(-radius_chunks, radius_chunks + 1):
+		for dx in range(-radius_chunks, radius_chunks + 1):
+			for st in generator.structures_near_chunk(cc.x + dx, cc.y + dz):
+				var key := str(st.get("key", ""))
+				if seen.has(key) or (st.get("npcs", []) as Array).is_empty():
+					continue
+				seen[key] = true
+				var rect: Rect2i = st["rect"]
+				var d := Vector2(from.x, from.z).distance_to(Vector2(rect.position) + Vector2(rect.size) * 0.5)
+				if d < best_d:
+					best_d = d
+					best = st
+	return best
+
+
+func _talk_to(v: Villager) -> void:
+	if v.dead:
+		EventBus.toast.emit("%s is dead." % v.display_name, 1.5)
+		return
+	var defs: Dictionary = Data.load_json("res://data/npcs/villagers.json").get("kinds", {})
+	var def: Dictionary = defs.get(v.npc_kind, {})
+	if def.is_empty():
+		return
+	_close_all_screens()
+	dialogue_ui.open(v, def)
+	player.input_enabled = false
+	hud.root.visible = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Input.warp_mouse(get_viewport().get_visible_rect().size * 0.5)
+
+
+func _on_enemy_attack(target_pos: Vector3, amount: float, en: Enemy) -> void:
+	# Which player is there? Local first, then remote peers.
+	if target_pos.distance_to(player.global_position) < 2.2 and not ghost:
+		var limb: String = BodyHealth.PARTS[kit.rng.randi_range(1, 6)]
+		kit.body.damage(limb, amount, "bite", kit.rng)
+		player.add_shake(0.12, 0.25)
+		EventBus.toast.emit("%s attacks!" % str(en.kind).replace("_", " ").capitalize(), 0.8)
+		if sounds != null:
+			sounds.play("heartbeat")
+		return
+	if session.is_online():
+		for peer in replicator.peer_states:
+			if peer == session.local_peer_id:
+				continue
+			if (replicator.peer_states[peer]["pos"] as Vector3).distance_to(target_pos) < 2.2:
+				replicator.damage_peer(peer, amount, "bite")
+				return
+
+
 func _on_landed(impact: float) -> void:
 	if impact <= 11.0 or player.fly:
 		return
@@ -1321,6 +1423,9 @@ func _on_interact() -> void:
 		EventBus.toast.emit("Busy", 0.6)
 		return
 	var ih := player.interact_hit
+	if not ih.is_empty() and ih["collider"] is Villager:
+		_talk_to(ih["collider"] as Villager)
+		return
 	if not ih.is_empty():
 		var prop := props.prop_from_collider(ih["collider"])
 		if prop != null:
@@ -1385,6 +1490,10 @@ func _physics_process(delta: float) -> void:
 		player.swim = flood_hazard.submersion(player.global_position)
 		if player.swim == 2:
 			exposure = 1.0  # no air under water
+		if session.is_server() and props != null and flood_hazard.phase != HazardModule.Phase.IDLE:
+			for cr in props.creatures:
+				if is_instance_valid(cr) and not cr.dead and cr.breathes and flood_hazard.submersion(cr.global_position, maxf(0.6, cr.rig_height)) == 2:
+					cr.breathe(1.0, dt)  # drowning: no air at all
 		if session.is_server():
 			for b in flood_hazard.take_bites():
 				var cell: Vector3i = b[0]
@@ -1438,6 +1547,19 @@ func _physics_process(delta: float) -> void:
 		for cr in props.creatures:
 			if is_instance_valid(cr) and not cr.dead:
 				cr.breathe(gas_hazard.exposure_at(cr.global_position, 0.8), dt)
+	if _want_dialogue and population != null and not dialogue_ui.is_open:
+		for v in population.villagers.values():
+			if is_instance_valid(v) and not (v as Villager).dead and (v as Villager).global_position.distance_to(player.global_position) < 20.0:
+				_want_dialogue = false
+				_talk_to(v)
+				if verbose:
+					print("[run] dialogue opened with %s (%s)" % [(v as Villager).display_name, (v as Villager).npc_kind])
+				break
+	if population != null:
+		population.perceive(_all_player_positions(),
+			func(p: Vector3) -> float: return gas_hazard.exposure_at(p, 1.0) if gas_hazard != null else 0.0,
+			func(p: Vector3) -> float: return (eclipse_hazard.sim.exposure(p, 1.0) * eclipse_hazard.light_factor) if eclipse_hazard != null else 0.0,
+			func(p: Vector3) -> bool: return flood_hazard.submersion(p, 1.0) > 0 if flood_hazard != null else false)
 	# Nearest pickup for the E prompt.
 	_nearest_pickup = null
 	var best := 2.4
@@ -1496,14 +1618,14 @@ func _exit_tree() -> void:
 			extra = "burned blocks %d" % eclipse_hazard.burned_total
 		elif flood_hazard != null:
 			extra = "peak level %.1f (base %.1f), wet cells %d, roaches %d alive, bites %d" % [flood_hazard.peak_level, flood_hazard.sim.base_level, flood_hazard.sim.wet.size(), flood_hazard.swarm.count_alive(), flood_hazard.bites_total]
-		print("[run] summary: hazard %s events %d phase %s | %s | props %d, creatures %d | body %.0f/%.0f alive %s" % [m.id, m.events_so_far, HazardModule.Phase.keys()[m.phase], extra, props.prop_count(), props.creatures.size(), kit.body.total_hp(), kit.body.total_max(), str(kit.body.alive)])
+		print("[run] summary: hazard %s events %d phase %s | %s | props %d, creatures %d, villagers %d, enemies %d | body %.0f/%.0f alive %s" % [m.id, m.events_so_far, HazardModule.Phase.keys()[m.phase], extra, props.prop_count(), props.creatures.size(), population.villagers.size() if population != null else 0, population.enemies.size() if population != null else 0, kit.body.total_hp(), kit.body.total_max(), str(kit.body.alive)])
 	if verbose and gas_hazard != null:
 		var dead := 0
 		for cr in props.creatures:
 			if is_instance_valid(cr) and cr.dead:
 				dead += 1
-		print("[run] summary: gas events %d, peak gas cells %d (mass %.1f), props %d, creatures %d (%d dead), items %d (%.1f kg), body %.0f/%.0f, o2 %.2f alive %s" % [
-			gas_hazard.events_so_far, gas_hazard.peak_cells, gas_hazard.peak_mass, props.prop_count(), props.creatures.size(), dead,
+		print("[run] summary: gas events %d, peak gas cells %d (mass %.1f), props %d, creatures %d (%d dead), villagers %d, enemies %d, items %d (%.1f kg), body %.0f/%.0f, o2 %.2f alive %s" % [
+			gas_hazard.events_so_far, gas_hazard.peak_cells, gas_hazard.peak_mass, props.prop_count(), props.creatures.size(), dead, population.villagers.size() if population != null else 0, population.enemies.size() if population != null else 0,
 			kit.equipment.all_items().size(), kit.equipment.total_weight(), kit.body.total_hp(), kit.body.total_max(), vitals.oxygen, str(kit.body.alive)])
 
 

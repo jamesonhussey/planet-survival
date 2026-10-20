@@ -1,0 +1,88 @@
+{
+  "_doc": "Enemy kinds tied to each planet's rule. spawn.when: hazard_warning|hazard_active|hazard_recovery|night|always; spawn.near: player|gas|water. flee: light|water|gas. hunts_in: gas|dark|any.",
+  "kinds": {
+    "gasper": {
+      "planet": "04",
+      "generator": "gasper",
+      "params": {
+        "ramp": "stone"
+      },
+      "hp": 45,
+      "speed": 3.6,
+      "damage": 9,
+      "attack_interval": 1.4,
+      "sight": 22,
+      "breathes": false,
+      "hunts_in": "gas",
+      "flee": "",
+      "despawn_when": "hazard_idle",
+      "drops": [
+        {
+          "id": "fiber",
+          "count": [
+            1,
+            3
+          ]
+        }
+      ],
+      "desc": "A grey thing that walks in the gas like it is air. It leaves when the air clears."
+    },
+    "dark_hound": {
+      "planet": "01",
+      "generator": "grazer",
+      "params": {
+        "ramp": "dust",
+        "size": [
+          1.0,
+          1.25
+        ]
+      },
+      "hp": 38,
+      "speed": 4.6,
+      "damage": 7,
+      "attack_interval": 1.1,
+      "sight": 26,
+      "breathes": true,
+      "hunts_in": "dark",
+      "flee": "light",
+      "burns": true,
+      "despawn_when": "hazard_active",
+      "drops": [
+        {
+          "id": "meat_raw",
+          "count": [
+            1,
+            2
+          ]
+        }
+      ],
+      "desc": "Hunts in the dusk. The sun kills it faster than it kills you."
+    },
+    "sand_crab": {
+      "planet": "02",
+      "generator": "crab",
+      "params": {
+        "ramp": "sand"
+      },
+      "hp": 30,
+      "speed": 2.4,
+      "damage": 6,
+      "attack_interval": 1.6,
+      "sight": 14,
+      "breathes": true,
+      "hunts_in": "any",
+      "flee": "water",
+      "despawn_when": "",
+      "drops": [
+        {
+          "id": "meat_raw",
+          "count": [
+            1,
+            1
+          ]
+        }
+      ],
+      "desc": "Slow on the flat, quick when the water is behind it."
+    }
+  }
+}
