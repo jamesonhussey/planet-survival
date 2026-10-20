@@ -1,0 +1,36 @@
+; Engine configuration file.
+; Generated and maintained by hand/code. Keep this file minimal: scenes, UI,
+; materials and input actions are all built from scripts (see CLAUDE.md).
+
+config_version=5
+
+[application]
+
+config/name="Choose a Planet"
+config/description="3D survival game: pick one of four planets, learn its deadly rule, survive the day target."
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+EventBus="*res://src/core/event_bus.gd"
+Data="*res://src/data/data_registry.gd"
+Game="*res://src/core/game.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="disabled"
+window/stretch/aspect="keep"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0
+textures/default_filters/use_nearest_mipmap_filter=true
+textures/default_filters/anisotropic_filtering_level=0
+anti_aliasing/quality/msaa_3d=0
+environment/defaults/default_clear_color=Color(0.05, 0.03, 0.08, 1)

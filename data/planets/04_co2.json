@@ -1,0 +1,94 @@
+{
+  "id": "04",
+  "name": "The CO2 Lake Planet",
+  "tagline": "Lush. Green. Breathes out.",
+  "palette": "04",
+  "world_size": 1024,
+  "world_height": 128,
+  "mood": {
+    "sky_top": "#7fae7a",
+    "sky_horizon": "#d8e3b4",
+    "fog_color": "#b9cfa6",
+    "ambient_color": "#4f6a4c",
+    "ambient_energy": 0.55,
+    "sun_color": "#f2f0d8",
+    "sun_energy": 1.0,
+    "sun_elevation_degrees": 48,
+    "fog_start": 10.0,
+    "fog_end": 64.0
+  },
+  "clock": {"minutes_per_day": 15, "start_hour": 8},
+  "terrain": {
+    "type": "hills_lakes",
+    "base_height": 44,
+    "amplitude": 20,
+    "frequency": 0.011,
+    "octaves": 4,
+    "lake_level": 40,
+    "lake_noise_frequency": 0.004,
+    "lake_threshold": 0.18,
+    "lake_fluid": "co2_water",
+    "surface": "grass",
+    "subsurface": "dirt",
+    "subsurface_depth": 3,
+    "deep": "stone",
+    "shore": "clay",
+    "shore_band": 2,
+    "mossy_chance": 0.12
+  },
+  "spawn": {"mode": "high_ground_near_lake", "min_height_above_lake": 6, "search_radius": 96},
+  "vitals": {
+    "oxygen_seconds": 40,
+    "oxygen_recover_seconds": 8,
+    "suffocation_dps": 7.0,
+    "gas_threshold": 0.22
+  },
+  "hazards": [
+    {
+      "id": "limnic_eruption",
+      "module": "heavy_gas",
+      "first_event_day": 1.25,
+      "warning_time": 45,
+      "active_time": 50,
+      "recovery_time": 120,
+      "interval_days": {"base": 2.0, "per_day": -0.02, "min": 0.5},
+      "intensity": {"base": 1.0, "per_day": 0.03, "max": 3.0},
+      "sim": {
+        "tick_hz": 6,
+        "source": "lake_surface",
+        "emit_per_tick": 0.08,
+        "max_concentration": 1.0,
+        "gravity_rate": 0.9,
+        "lateral_rate": 0.22,
+        "decay_per_tick": 0.0025,
+        "min_concentration": 0.01,
+        "region_margin": 40,
+        "max_active_cells": 60000
+      },
+      "cues": {
+        "warning": [
+          {"t": 0, "type": "toast", "text": "The lake is bubbling.", "seconds": 4},
+          {"t": 0, "type": "sound", "id": "deep_rumble", "loop": true},
+          {"t": 0, "type": "lake_bubbles", "intensity": 0.4},
+          {"t": 15, "type": "shake", "strength": 0.15, "seconds": 3},
+          {"t": 20, "type": "sound", "id": "birds_scatter"},
+          {"t": 30, "type": "lake_bubbles", "intensity": 1.0},
+          {"t": 35, "type": "toast", "text": "Something is wrong with the air near the water.", "seconds": 4},
+          {"t": 40, "type": "shake", "strength": 0.35, "seconds": 5}
+        ],
+        "active": [
+          {"t": 0, "type": "sound", "id": "gas_hiss", "loop": true},
+          {"t": 0, "type": "toast", "text": "The lake breathes out.", "seconds": 5}
+        ],
+        "recovery": [
+          {"t": 0, "type": "toast", "text": "The air begins to clear.", "seconds": 4}
+        ]
+      }
+    }
+  ],
+  "props": [
+    {"generator": "tree", "per_chunk": 1.4, "params": {"height": [6, 11], "ramp": "leaf", "bark": "bark"}, "on": ["grass"]},
+    {"generator": "lantern", "per_chunk": 0.08, "params": {"ramp": "lantern"}, "on": ["grass", "stone"]},
+    {"generator": "grazer", "per_chunk": 0.18, "params": {"ramp": "grazer", "size": [0.8, 1.3]}, "on": ["grass"], "creature": true}
+  ]
+}

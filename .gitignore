@@ -1,0 +1,19 @@
+# Godot
+.godot/
+*.import
+# Pinned engine binaries downloaded by tools/godot.sh / tools/godot.ps1
+.godot-bin/
+# Exports and build output
+build/
+export_templates/
+# Local docs dump (tools/docs.sh)
+docs/godot-classes/
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+# Screenshots and logs produced by tools
+screenshots/
+*.log

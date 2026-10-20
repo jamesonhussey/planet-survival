@@ -1,0 +1,8 @@
+{
+  "_doc": "Game modes differ only in the day target.",
+  "modes": [
+    {"id": "short", "name": "Short", "days": 30},
+    {"id": "standard", "name": "Standard", "days": 100},
+    {"id": "long_haul", "name": "Long Haul", "days": 730}
+  ]
+}
