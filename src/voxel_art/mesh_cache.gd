@@ -16,6 +16,7 @@ const GENERATORS := {
 	"roach": "res://src/voxel_art/generators/roach_generator.gd",
 	"gasper": "res://src/voxel_art/generators/gasper_generator.gd",
 	"crab": "res://src/voxel_art/generators/crab_generator.gd",
+	"giant": "res://src/voxel_art/generators/giant_generator.gd",
 }
 
 static var _cache: Dictionary = {}

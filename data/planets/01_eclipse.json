@@ -152,7 +152,12 @@
         ]
       },
       "active_tint": "#fff2c8",
-      "active_tint_amount": 0.35
+      "active_tint_amount": 0.35,
+      "banners": {
+        "warning": "THE MOON IS SLIPPING",
+        "active": "GET OUT OF THE LIGHT",
+        "recovery": "THE LIGHT IS FADING"
+      }
     }
   ],
   "props": [

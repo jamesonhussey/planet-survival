@@ -249,6 +249,92 @@
           "done": "Light we choose, not light that chooses us."
         }
       ]
+    },
+    "dome_folk": {
+      "planet": "03",
+      "names": [
+        "Harl",
+        "Wenna",
+        "Dov",
+        "Mire",
+        "Teshen",
+        "Olun"
+      ],
+      "greetings": [
+        "Keep your head down. Welcome.",
+        "You walk tall. That is a habit to lose here."
+      ],
+      "warnings": [
+        "Build low. Build stone. The walkers do not look down.",
+        "When the ground hums, get under rock. Not wood. Rock. Wood is a lid on a pot.",
+        "They are not angry. They are just heavy. Nothing you can build will stop a foot; only hold it up.",
+        "Our domes are dug in. A foot on the roof is a bad day, not a last one."
+      ],
+      "lore": [
+        "Nobody has seen one sit down. Nobody has seen one eat.",
+        "The old road to the east is a line of footprints now. You can grow things in them.",
+        "Dov says they hum to each other through the ground. Dov says a lot of things."
+      ],
+      "trades": [
+        {
+          "give": {
+            "id": "meat_cooked",
+            "count": 2
+          },
+          "get": {
+            "id": "cobble",
+            "count": 8
+          }
+        },
+        {
+          "give": {
+            "id": "log",
+            "count": 4
+          },
+          "get": {
+            "id": "rope",
+            "count": 2
+          }
+        },
+        {
+          "give": {
+            "id": "berries",
+            "count": 8
+          },
+          "get": {
+            "id": "splint",
+            "count": 1
+          }
+        }
+      ],
+      "tasks": [
+        {
+          "id": "stone_for_domes",
+          "text": "The west dome cracked. Bring me 10 cobble and I'll pay in bricks.",
+          "need": {
+            "id": "cobble",
+            "count": 10
+          },
+          "reward": {
+            "id": "brick",
+            "count": 10
+          },
+          "done": "Good stone. The bricks hold weight too, if you lay them thick."
+        },
+        {
+          "id": "meat_for_winter",
+          "text": "The cold is coming. Four cooked meat.",
+          "need": {
+            "id": "meat_cooked",
+            "count": 4
+          },
+          "reward": {
+            "id": "medkit_small",
+            "count": 1
+          },
+          "done": "That'll keep the little ones warm. Take this; we patch ourselves up a lot here."
+        }
+      ]
     }
   }
 }

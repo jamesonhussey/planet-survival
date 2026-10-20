@@ -17,6 +17,10 @@ static func build(kind: String, origin: Vector3i, rng: RandomNumberGenerator, id
 			return _hilltop_camp(origin, rng, ids, heights)
 		"stilt_village":
 			return _stilt_village(origin, rng, ids, heights)
+		"low_domes":
+			return _low_domes(origin, rng, ids, heights)
+		"boulder":
+			return _boulder(origin, rng, ids, heights)
 	return {}
 
 
@@ -39,6 +43,11 @@ static func npc_points(kind: String, origin: Vector3i) -> Array:
 			for h in _stilt_huts(o):
 				out2.append({"pos": Vector3i(h.x + 1, o.y + 7, h.z + 1), "home": Vector3i(h.x + 1, o.y + 7, h.z + 1)})
 			return out2
+		"low_domes":
+			var out3: Array = []
+			for c in _dome_centres(o):
+				out3.append({"pos": Vector3i(c.x, o.y - 1, c.z), "home": Vector3i(c.x, o.y - 1, c.z)})
+			return out3
 	return []
 
 
@@ -50,6 +59,8 @@ static func footprint(kind: String) -> Vector2i:
 		"barn": return Vector2i(12, 9)
 		"hilltop_camp": return Vector2i(16, 16)
 		"stilt_village": return Vector2i(20, 14)
+		"low_domes": return Vector2i(18, 18)
+		"boulder": return Vector2i(5, 5)
 	return Vector2i(1, 1)
 
 
@@ -256,4 +267,63 @@ static func _stilt_village(o: Vector3i, rng: RandomNumberGenerator, ids: Diction
 	# ladder: a column of planks steps up to hut 0
 	for y in range(o.y + 1, deck):
 		out[Vector3i(huts[0].x - 1, y, huts[0].z + 2 + (y % 2))] = planks
+	return out
+
+
+static func _dome_centres(o: Vector3i) -> Array[Vector3i]:
+	return [Vector3i(o.x + 4, o.y, o.z + 4), Vector3i(o.x + 13, o.y, o.z + 4), Vector3i(o.x + 4, o.y, o.z + 13), Vector3i(o.x + 13, o.y, o.z + 13)]
+
+
+## Planet 03: four stone domes dug two blocks into the ground around a fire
+## pit. Stone (strength 7) holds a giant's foot; the hint is that nothing here
+## stands taller than a person, and all of it is rock.
+static func _low_domes(o: Vector3i, rng: RandomNumberGenerator, ids: Dictionary, heights: Callable) -> Dictionary:
+	var out: Dictionary = {}
+	var stone := _id(ids, "stone", 3)
+	var mossy := _id(ids, "mossy_stone", stone)
+	var dirt := _id(ids, "dirt", 1)
+	var fire := _id(ids, "campfire", 15)
+	_prepare_ground(out, o, 18, 18, 5, ids, heights)
+	for z in 18:
+		for x in 18:
+			out[Vector3i(o.x + x, o.y, o.z + z)] = dirt
+	for c in _dome_centres(o):
+		# Shell radius 3.6 centred half a block below the platform: the dome
+		# rises two blocks above it and the floor sits two below.
+		var centre := Vector3(c.x + 0.5, o.y - 0.5, c.z + 0.5)
+		for y in range(-2, 4):
+			for z in range(-4, 5):
+				for x in range(-4, 5):
+					var p := Vector3i(c.x + x, o.y + y, c.z + z)
+					var d := (Vector3(p) + Vector3(0.5, 0.5, 0.5)).distance_to(centre)
+					if d <= 3.6:
+						if d >= 2.6 or p.y == o.y - 2:
+							out[p] = mossy if rng.randf() < 0.3 else stone
+						else:
+							out[p] = 0
+		# Door tunnel toward the fire, two blocks tall from the sunken floor, then a one-block step up.
+		var dir := Vector3i(1 if c.x < o.x + 9 else -1, 0, 0)
+		for i in range(1, 4):
+			out[Vector3i(c.x + dir.x * i, o.y - 1, c.z)] = 0
+			out[Vector3i(c.x + dir.x * i, o.y, c.z)] = 0
+		out[Vector3i(c.x + dir.x * 4, o.y, c.z)] = 0
+	out[Vector3i(o.x + 9, o.y + 1, o.z + 9)] = fire
+	for p in [Vector3i(o.x + 8, o.y + 1, o.z + 8), Vector3i(o.x + 10, o.y + 1, o.z + 10), Vector3i(o.x + 8, o.y + 1, o.z + 10), Vector3i(o.x + 10, o.y + 1, o.z + 8)]:
+		out[p] = stone
+	return out
+
+
+## A boulder: a stone blob half-sunk in the meadow. Cover with a rock roof.
+static func _boulder(o: Vector3i, rng: RandomNumberGenerator, ids: Dictionary, _heights: Callable) -> Dictionary:
+	var out: Dictionary = {}
+	var stone := _id(ids, "stone", 3)
+	var mossy := _id(ids, "mossy_stone", stone)
+	var r := rng.randf_range(1.8, 2.6)
+	var centre := Vector3(o.x + 2.5, o.y + 0.5 + r * 0.3, o.z + 2.5)
+	for y in range(-2, 4):
+		for z in 5:
+			for x in 5:
+				var p := Vector3i(o.x + x, o.y + y, o.z + z)
+				if (Vector3(p) + Vector3(0.5, 0.5, 0.5)).distance_to(centre) <= r:
+					out[p] = mossy if rng.randf() < 0.35 else stone
 	return out

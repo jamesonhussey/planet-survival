@@ -24,6 +24,7 @@ func _ready() -> void:
 	streams["dig"] = _make(_thud(0.12), false)
 	streams["place"] = _make(_blip(0.05, 330.0), false)
 	streams["heartbeat"] = _make(_thud(0.25), false)
+	streams["footstep"] = _make(_thud(0.5), false)
 	for i in 6:
 		var p := AudioStreamPlayer.new()
 		p.volume_db = master_volume_db

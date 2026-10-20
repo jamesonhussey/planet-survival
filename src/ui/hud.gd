@@ -298,13 +298,18 @@ func _on_vitals(v: Dictionary) -> void:
 	status_label.text = "  ".join(bits)
 
 
-func _on_hazard_phase(_id: String, phase: int, _intensity: float) -> void:
+## hazard id -> {"warning": text, "active": text, "recovery": text} from the planet's hazard config.
+var banners: Dictionary = {}
+
+
+func _on_hazard_phase(id: String, phase: int, _intensity: float) -> void:
 	_warning_phase = phase
 	_warning_time = 0.0
+	var b: Dictionary = banners.get(id, {})
 	match phase:
-		HazardModule.Phase.WARNING: warning_label.text = "SOMETHING IS WRONG"
-		HazardModule.Phase.ACTIVE: warning_label.text = "GET TO HIGH GROUND"
-		HazardModule.Phase.RECOVERY: warning_label.text = "THE AIR IS CLEARING"
+		HazardModule.Phase.WARNING: warning_label.text = str(b.get("warning", "SOMETHING IS WRONG"))
+		HazardModule.Phase.ACTIVE: warning_label.text = str(b.get("active", "TAKE COVER"))
+		HazardModule.Phase.RECOVERY: warning_label.text = str(b.get("recovery", "IT IS PASSING"))
 		_: warning_label.text = ""
 
 

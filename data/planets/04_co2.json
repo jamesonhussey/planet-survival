@@ -156,6 +156,11 @@
             "seconds": 4
           }
         ]
+      },
+      "banners": {
+        "warning": "SOMETHING IS WRONG",
+        "active": "GET TO HIGH GROUND",
+        "recovery": "THE AIR IS CLEARING"
       }
     }
   ],

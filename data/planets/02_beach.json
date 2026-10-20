@@ -160,7 +160,12 @@
         ]
       },
       "active_tint": "#6a7a9a",
-      "active_tint_amount": 0.3
+      "active_tint_amount": 0.3,
+      "banners": {
+        "warning": "THE TIDE IS WRONG",
+        "active": "GET ABOVE THE WATER",
+        "recovery": "THE WATER IS GOING BACK"
+      }
     }
   ],
   "props": [

@@ -17,3 +17,7 @@ Thumbs.db
 # Screenshots and logs produced by tools
 screenshots/
 *.log
+
+# GodotSteam GDExtension (fetched by tools/get_godotsteam.sh)
+addons/godotsteam/
+steam_appid.txt

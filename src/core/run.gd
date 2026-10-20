@@ -44,6 +44,8 @@ var hazards: HazardDirector
 var gas_hazard: HeavyGasHazard
 var eclipse_hazard: EclipseHazard
 var flood_hazard: FloodHazard
+var giant_hazard: GiantHazard
+var giant_renderer: GiantRenderer
 var gas_renderer: GasRenderer
 var water_renderer: WaterRenderer
 var swarm_renderer: SwarmRenderer
@@ -128,12 +130,12 @@ func _ready() -> void:
 			var rect: Rect2i = st["rect"]
 			var center := Vector3(rect.position.x + rect.size.x * 0.5, 0.0, rect.position.y + rect.size.y * 0.5)
 			var edge := Vector3(rect.position.x - 6, 0.0, rect.position.y + rect.size.y * 0.5)
-			edge.y = generator.height_at(int(edge.x), int(edge.z)) + 3.0
 			center.y = generator.height_at(int(center.x), int(center.z)) + 1.0
+			edge.y = maxf(generator.height_at(int(edge.x), int(edge.z)), center.y) + 4.0
 			player.fly = true
 			player.global_position = edge
 			var d := center - edge
-			player.set_look(atan2(-d.x, -d.z), -atan2(d.y, Vector2(d.x, d.z).length()) * 0.5)
+			player.set_look(atan2(-d.x, -d.z), atan2(d.y, Vector2(d.x, d.z).length()))
 			streamer.set_focus([edge])
 			props.set_focus(edge)
 			print("[run] village %s at %s" % [str(st.get("kind", "")), str(rect)])
@@ -177,7 +179,8 @@ func _build_world() -> void:
 	world_root = Node3D.new()
 	world_root.name = "World"
 	view.add_child(world_root)
-	world = WorldData.new(int(planet.get("world_size", 1024)), int(planet.get("world_height", 128)), Data.materials)
+	# --world_size=N overrides the planet (0 = unbounded) for testing the infinite switch.
+	world = WorldData.new(int(Game.args.get("world_size", planet.get("world_size", 1024))), int(planet.get("world_height", 128)), Data.materials)
 	generator = ChunkGenerator.new(world_seed, planet.get("terrain", {}), Data.material_ids, world.world_height, planet.get("structures", []))
 	world.generator = generator
 	if not save_data.is_empty():
@@ -200,29 +203,37 @@ func _find_spawn() -> Vector3:
 	var cfg: Dictionary = planet.get("spawn", {})
 	var min_above := int(cfg.get("min_height_above_lake", 6))
 	var radius := int(cfg.get("search_radius", 96))
+	# --origin=x,z: search around another point (testing far-from-origin / unbounded worlds).
+	var ox := 0
+	var oz := 0
+	if Game.args.has("origin"):
+		var op := str(Game.args["origin"]).split(",")
+		if op.size() == 2:
+			ox = int(op[0])
+			oz = int(op[1])
 	match str(cfg.get("mode", "high_ground_near_lake")):
 		"flat":
 			for r in range(0, radius, 4):
-				for z in range(-r, r + 1, 4):
-					for x in range(-r, r + 1, 4):
+				for z in range(oz - r, oz + r + 1, 4):
+					for x in range(ox - r, ox + r + 1, 4):
 						if generator.is_structure_column(x, z) or generator.is_lake_column(x, z):
 							continue
 						var h := generator.height_at(x, z)
 						if absi(generator.height_at(x + 2, z) - h) <= 1 and absi(generator.height_at(x, z + 2) - h) <= 1:
 							return Vector3(x + 0.5, h + 1.1, z + 0.5)
-			return Vector3(0.5, generator.height_at(0, 0) + 1.1, 0.5)
+			return Vector3(ox + 0.5, generator.height_at(ox, oz) + 1.1, oz + 0.5)
 		"beach":
 			var coast := int(planet.get("terrain", {}).get("coast_z", 0))
 			for z in range(coast + 14, coast + radius, 3):
-				for x in range(-8, 9, 4):
+				for x in range(ox - 8, ox + 9, 4):
 					if not generator.is_lake_column(x, z) and generator.height_at(x, z) >= generator.lake_level + min_above:
 						return Vector3(x + 0.5, generator.height_at(x, z) + 1.1, z + 0.5)
 			return Vector3(0.5, generator.height_at(0, coast + 20) + 1.1, coast + 20.5)
 	var best := Vector2i.ZERO
 	var best_score := -INF
 	var lake_level := generator.lake_level
-	for z in range(-radius, radius + 1, 6):
-		for x in range(-radius, radius + 1, 6):
+	for z in range(oz - radius, oz + radius + 1, 6):
+		for x in range(ox - radius, ox + radius + 1, 6):
 			if generator.is_lake_column(x, z):
 				continue
 			var h := generator.height_at(x, z)
@@ -233,7 +244,7 @@ func _find_spawn() -> Vector3:
 				if generator.is_lake_column(x + d.x, z + d.y):
 					near_lake = true
 					break
-			var score := (10.0 if near_lake else 0.0) - Vector2(x, z).length() * 0.02 - absf(float(h - lake_level - min_above - 4)) * 0.3
+			var score := (10.0 if near_lake else 0.0) - Vector2(x - ox, z - oz).length() * 0.02 - absf(float(h - lake_level - min_above - 4)) * 0.3
 			if score > best_score:
 				best_score = score
 				best = Vector2i(x, z)
@@ -560,6 +571,7 @@ func _become_ghost(cause: String) -> void:
 
 
 func _revive_at(pos: Vector3) -> void:
+	EventBus.achievement.emit("revived")
 	ghost = false
 	player.ghost = false
 	player.fly = false
@@ -762,6 +774,9 @@ func _build_hazards() -> void:
 	hazards = HazardDirector.new()
 	hazards.name = "Hazards"
 	add_child(hazards)
+	# Escalation curves are written in standard (100-day) days: shorter modes
+	# compress them, Long Haul stretches them over its 730 days.
+	hazards.escalation_scale = 100.0 / maxf(1.0, float(mode.get("days", 100)))
 	hazards.setup(planet, world, clock, {
 		"player_position": func() -> Vector3: return player.global_position,
 		"player_positions": _all_player_positions,
@@ -773,6 +788,9 @@ func _build_hazards() -> void:
 			eclipse_hazard = m
 		elif m is FloodHazard and flood_hazard == null:
 			flood_hazard = m
+		elif m is GiantHazard and giant_hazard == null:
+			giant_hazard = m
+			giant_hazard.footfall.connect(_on_footfall)
 	if session.is_online() and not session.is_server():
 		hazards.enabled = false
 		for m in hazards.modules:
@@ -835,6 +853,11 @@ func _build_presentation() -> void:
 		swarm_renderer.name = "Swarm"
 		view.add_child(swarm_renderer)
 		swarm_renderer.setup(MaterialFactory.voxel_model(Data.render, false), str(planet.get("palette", "02")))
+	if giant_hazard != null:
+		giant_renderer = GiantRenderer.new()
+		giant_renderer.name = "Giant"
+		view.add_child(giant_renderer)
+		giant_renderer.setup(giant_hazard, MaterialFactory.voxel_model(Data.render, false), str(planet.get("palette", "03")), int(world_seed) + 303)
 	if gas_hazard != null:
 		gas_renderer = GasRenderer.new()
 		gas_renderer.name = "GasHaze"
@@ -858,6 +881,8 @@ func _build_presentation() -> void:
 	hud.name = "HUD"
 	view.add_child(hud)
 	hud.debug_provider = _debug_text
+	for h in planet.get("hazards", []):
+		hud.banners[str(h.get("id", ""))] = h.get("banners", {})
 	player.hotbar_changed.connect(func(_i: int) -> void: _refresh_quick())
 	kit.equipment.changed.connect(_refresh_quick)
 	_refresh_quick()
@@ -1323,6 +1348,7 @@ func _talk_to(v: Villager) -> void:
 		return
 	_close_all_screens()
 	dialogue_ui.open(v, def)
+	EventBus.achievement.emit("talked")
 	player.input_enabled = false
 	hud.root.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -1346,6 +1372,47 @@ func _on_enemy_attack(target_pos: Vector3, amount: float, en: Enemy) -> void:
 			if (replicator.peer_states[peer]["pos"] as Vector3).distance_to(target_pos) < 2.2:
 				replicator.damage_peer(peer, amount, "bite")
 				return
+
+
+## A giant's foot came down (server and clients alike; only the server deals damage).
+func _on_footfall(pos: Vector3, force: float, radius: float, _seq: int) -> void:
+	var dist := Vector2(pos.x, pos.z).distance_to(Vector2(player.global_position.x, player.global_position.z))
+	var t := CrushSim.tremor(dist, giant_hazard.tremor_range)
+	if t > 0.0:
+		player.add_shake(0.08 + 0.7 * t, 0.45)
+		if sounds != null:
+			sounds.play("footstep", false, -14.0 + 14.0 * t)
+	if not session.is_server():
+		return
+	var cx := int(floor(pos.x))
+	var cz := int(floor(pos.z))
+	# Players.
+	if not ghost:
+		if giant_hazard.sim.crushed(player.global_position, cx, cz, radius, force):
+			for part in BodyHealth.PARTS:
+				kit.body.damage(part, giant_hazard.crush_damage / BodyHealth.PARTS.size(), "crush", kit.rng)
+			EventBus.toast.emit("Crushed.", 3.0)
+		elif dist < radius + 2.5:
+			kit.body.damage("left_leg", giant_hazard.near_miss_damage * 0.5, "blunt", kit.rng)
+			kit.body.damage("right_leg", giant_hazard.near_miss_damage * 0.5, "blunt", kit.rng)
+			player.velocity += Vector3(player.global_position.x - pos.x, 0.0, player.global_position.z - pos.z).normalized() * 6.0 + Vector3.UP * 4.0
+			EventBus.toast.emit("Thrown off your feet!", 1.5)
+	if session.is_online():
+		for peer in replicator.peer_states:
+			if peer == session.local_peer_id or bool(replicator.peer_states[peer].get("ghost", false)):
+				continue
+			var pp: Vector3 = replicator.peer_states[peer]["pos"]
+			if giant_hazard.sim.crushed(pp, cx, cz, radius, force):
+				replicator.damage_peer(peer, giant_hazard.crush_damage, "crush")
+			elif Vector2(pp.x, pp.z).distance_to(Vector2(pos.x, pos.z)) < radius + 2.5:
+				replicator.damage_peer(peer, giant_hazard.near_miss_damage, "blunt")
+	# Creatures, villagers and enemies: same rule, same roof.
+	for cr in props.creatures:
+		if is_instance_valid(cr) and not cr.dead and giant_hazard.sim.crushed(cr.global_position, cx, cz, radius, force, maxf(0.5, cr.rig_height)):
+			cr.die("crush")
+	# Blocks the foot pressed: remesh now so the footprint shows immediately.
+	for b in giant_hazard.sim.destroyed:
+		_after_edit(b)
 
 
 func _on_landed(impact: float) -> void:
@@ -1547,6 +1614,11 @@ func _physics_process(delta: float) -> void:
 		for cr in props.creatures:
 			if is_instance_valid(cr) and not cr.dead:
 				cr.breathe(gas_hazard.exposure_at(cr.global_position, 0.8), dt)
+	# --lookat=giant: debug camera tracks the giant (screenshots).
+	if giant_hazard != null and not giant_hazard.is_idle() and str(Game.args.get("lookat", "")) == "giant":
+		var g := giant_hazard.giant_position() + Vector3(0, 6, 0)
+		var d := g - player.camera.global_position
+		player.set_look(atan2(-d.x, -d.z), atan2(d.y, Vector2(d.x, d.z).length()))
 	if _want_dialogue and population != null and not dialogue_ui.is_open:
 		for v in population.villagers.values():
 			if is_instance_valid(v) and not (v as Villager).dead and (v as Villager).global_position.distance_to(player.global_position) < 20.0:
@@ -1618,6 +1690,8 @@ func _exit_tree() -> void:
 			extra = "burned blocks %d" % eclipse_hazard.burned_total
 		elif flood_hazard != null:
 			extra = "peak level %.1f (base %.1f), wet cells %d, roaches %d alive, bites %d" % [flood_hazard.peak_level, flood_hazard.sim.base_level, flood_hazard.sim.wet.size(), flood_hazard.swarm.count_alive(), flood_hazard.bites_total]
+		elif giant_hazard != null:
+			extra = "footfalls %d, blocks pressed %d, walked %.0f/%.0f m, pass %.0f m" % [giant_hazard.step_count, giant_hazard.blocks_crushed, giant_hazard.walked, giant_hazard.path_length(), giant_hazard.pass_distance()]
 		print("[run] summary: hazard %s events %d phase %s | %s | props %d, creatures %d, villagers %d, enemies %d | body %.0f/%.0f alive %s" % [m.id, m.events_so_far, HazardModule.Phase.keys()[m.phase], extra, props.prop_count(), props.creatures.size(), population.villagers.size() if population != null else 0, population.enemies.size() if population != null else 0, kit.body.total_hp(), kit.body.total_max(), str(kit.body.alive)])
 	if verbose and gas_hazard != null:
 		var dead := 0
@@ -1652,6 +1726,9 @@ func _process(_delta: float) -> void:
 			extra = "light %.2f exposure %.2f burned %d" % [eclipse_hazard.light_factor, eclipse_hazard.exposure_at(player.global_position), eclipse_hazard.burned_total]
 		elif flood_hazard != null:
 			extra = "level %.1f wet %d swim %d roaches %d bites %d" % [flood_hazard.sim.level, flood_hazard.sim.wet.size(), player.swim, flood_hazard.swarm.count_alive(), flood_hazard.bites_total]
+		elif giant_hazard != null:
+			var g := giant_hazard.giant_position()
+			extra = "giant at %.0f,%.0f dist %.0f steps %d pressed %d" % [g.x, g.z, Vector2(g.x, g.z).distance_to(Vector2(player.global_position.x, player.global_position.z)), giant_hazard.step_count, giant_hazard.blocks_crushed]
 		print("[run] frame %d: %s | %s %s t=%.1f | %s | hp %.0f" % [_frame, clock.clock_text(), m.id, HazardModule.Phase.keys()[m.phase], m.phase_time, extra, kit.body.total_hp()])
 	if verbose and _frame % 20 == 0 and gas_hazard != null:
 		print("[run] frame %d: %s | hazard %s t=%.1f cells=%d sources=%d | exposure %.2f o2 %.2f hp %.0f" % [

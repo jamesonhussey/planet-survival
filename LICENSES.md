@@ -4,6 +4,7 @@ Everything that is not written in this repository is listed here with its licens
 
 | Component | Version | License | Use | Notes |
 |---|---|---|---|---|
+| GodotSteam (GDExtension, optional) | v4.23.2 via `tools/get_godotsteam.sh` | MIT | Steam achievements, cloud files, lobbies; `src/steam/steam_bridge.gd` is a no-op when the addon is absent | https://github.com/GodotSteam/GodotSteam — the addon bundles the Steamworks SDK redistributables (Valve Steamworks SDK license); only ship them in Steam builds. |
 | Godot Engine | 4.7.2-stable | MIT (engine), plus third-party notices shipped with the engine | Engine and export templates | https://godotengine.org/license — the exported game must include Godot's license text and third-party notices (Help → About → Third-party Licenses). |
 
 ## Generated in-repo (no third-party license)
@@ -14,6 +15,5 @@ Everything that is not written in this repository is listed here with its licens
 
 | Component | License | Planned use | Milestone |
 |---|---|---|---|
-| GodotSteam (GDExtension) | MIT | Steamworks: achievements, cloud saves, lobbies / `SteamMultiplayerPeer` | 7 |
-| Steamworks SDK | Valve Steamworks SDK license (redistributable binaries only) | Required by GodotSteam | 7 |
+| `SteamMultiplayerPeer` (part of GodotSteam) | MIT | Steam P2P transport replacing ENet for friends | after 7 |
 | Pixel Operator (font) | CC0 | Fallback only if the generated font proves insufficient | — |

@@ -1,0 +1,17 @@
+{
+  "_doc": "Steam achievements (ids match the Steamworks dashboard). Unlocked through EventBus.achievement(id); SteamBridge mirrors them locally so builds without Steam keep them.",
+  "achievements": [
+    {"id": "night_01", "name": "The Moon Held", "desc": "Survive your first night on the Eclipse Planet."},
+    {"id": "night_02", "name": "Dry Feet", "desc": "Survive your first night on the Beach Planet."},
+    {"id": "night_03", "name": "Head Down", "desc": "Survive your first night on the Giants Planet."},
+    {"id": "night_04", "name": "Still Breathing", "desc": "Survive your first night on the CO2 Lake Planet."},
+    {"id": "week", "name": "A Week Out", "desc": "Reach day 8 on any planet."},
+    {"id": "win_01", "name": "Eclipse Veteran", "desc": "Reach the day target on the Eclipse Planet."},
+    {"id": "win_02", "name": "Tide Reader", "desc": "Reach the day target on the Beach Planet."},
+    {"id": "win_03", "name": "Under the Rock", "desc": "Reach the day target on the Giants Planet."},
+    {"id": "win_04", "name": "Clear Air", "desc": "Reach the day target on the CO2 Lake Planet."},
+    {"id": "long_haul", "name": "Two Years", "desc": "Finish a Long Haul run."},
+    {"id": "talked", "name": "Local Knowledge", "desc": "Talk to a villager."},
+    {"id": "revived", "name": "Vigil Kept", "desc": "Bring a friend back with the Revival Ritual."}
+  ]
+}

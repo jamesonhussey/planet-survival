@@ -47,6 +47,10 @@ From orbit the player sees four planets (01–04) and picks one. Each looks liva
 | 2026-10-20 | Villagers are creatures: they breathe, burn and drown like everyone, go home on a hazard WARNING and stay until the all-clear, remember being dead across saves | A wiped-out village is a story the rules told, never a script |
 | 2026-10-20 | Talking (E): greetings, warnings and lore lines, trades (`give`/`get` from the kit) and one task at a time per villager kind, from `data/npcs/villagers.json`; task progress is per player and saved | Hints and a small economy without quest machinery |
 | 2026-10-20 | Enemies are data (`data/enemies.json`) tied to each planet's rule: gaspers hunt only in gas and vanish when it clears, dark hounds hunt in the dark, flee light and burn, sand crabs flee water; a planet lists which spawn when (`always`, `night`, `hazard_*`), near what (`player`, `gas`), how many | Enemies read the same properties as hazards; no bespoke monster logic per planet |
+| 2026-10-20 | Planet 03 = the walker (see its section): `CrushSim` footfalls read `strength`; a stone roof is shelter, a plank one is not; near misses knock you down; footprints stay | Benign by rule, deadly by inattention, and the villages teach it by example |
+| 2026-10-20 | Escalation curves are written in standard (100-day) days and scaled by `100 / mode.days`: Short reaches the ceiling by day 30, Long Haul stretches the same ramp over 730 days | One set of curves per planet; every mode ends at its hardest |
+| 2026-10-20 | Infinite world: `world_size: 0` boots and runs hazards 5000 blocks from the origin on all planets (`--world_size=0 --origin=5000,-3000`); planets stay at 1024 until far-coordinate float jitter and save size are checked in long play | The door is open; flipping it is a data change |
+| 2026-10-20 | Steam through one autoload (`SteamBridge`): GodotSteam when the addon is present, otherwise a no-op; achievements in `data/achievements.json` and mirrored locally; cloud and lobby calls stubbed; ENet stays the dev transport | Dev builds never need Steam running |
 | 2026-10-20 | Revival Ritual: craft Cairn Stones (6 cobble + rope), place the cairn, select the dead player's Tag and press E on it, keep a heat source within 3 blocks through one full night (1.25 nights for the second revive, +0.25 each); a destroyed cairn fails the vigil, a dead fire only pauses it. Revived: 60% max HP, half hunger/thirst, empty hands | Property-based (any fire, any stone), costs time and attention during the planet's own hazard |
 
 ## Planets
@@ -70,8 +74,11 @@ Endless beach: sea for z < 0, sand rising inland with dunes and tidal pools, pal
 - Telegraph (70 s): the tide pulls out 2 blocks, bruise-coloured sky, rumble, birds, tremor, "Something is moving under the sand". Active (120 s): the sea rises 9 blocks (+2 per intensity) over the first 40%, then holds; roaches spawn as long as the water rises. Recovery (90 s): the water goes back, the swarm thins.
 - Solutions from the rules: stilts above the peak, a sealed brick/stone/clay room (airtight keeps roaches out, waterproof keeps water out), towers, fire rings, decoy warm spots (future: lanterns), rafts (future: buoyancy).
 
-### 03 — The Giants Planet (M7)
-Mostly benign giants. **Rule:** `CrushSim` applies `crush_force` under each footfall to blocks (`strength`) and `crushable` entities; tremor telegraph scales with distance. Giants ignore players unless provoked and may be useful.
+### 03 — The Giants Planet (M7, playable)
+Cold rolling meadows (16/4 °C) with rare lakes, big trees, berry bushes, dead wood, boulders half-sunk in the grass, large grazers; at night a grey prowler hunts in the dark and keeps away from light. Dome folk live in four stone domes dug two blocks into a hilltop around a fire pit. **Rule:** `CrushSim`. A giant walks a straight line that passes `pass_distance` (18 m, 4 m closer per intensity, never under 6) beside the players. Each footfall (every 2.2 s, stride 6 m, foot radius 2.2) presses a disc of ground: blocks whose `strength` is below `crush_force` (5 + 0.6 per intensity) are destroyed from the top down, two deep (dirt, grass, sand, planks, thatch, glass go; stone, brick, cairn, logs hold at low intensity, brick fails past intensity 2.7). Anything standing in the disc is crushed (death) unless a solid block at least as strong as the foot sits above its head within 8 blocks: a stone roof is shelter, a plank roof is a lid on a pot. A near miss (within 2.5 m of the foot) throws you off your feet and bruises the legs. Creatures, villagers and enemies obey the same rule. The giant never hunts; it does not look down.
+- Telegraph (60 s): the ground hums (looping rumble), birds scatter, tremors grow with each footfall as it closes from ~165 m ("Get under rock. Not wood. Rock."). Active (70 s): it crosses, closest approach mid-phase, footprints stay in the meadow. Recovery (60 s): it walks away until the tremors fade.
+- Solutions from the rules: dig in under stone (the dome folk's way), a cairn-stone or brick roof, boulders, standing clear of the line once you can see it (fog ends at 96 m; it is 15 m tall), never a plank hut. Footprints are free pits for later building.
+- Co-op: clients replay the same footfalls (sequence-numbered in the hazard params), so the pressed ground matches on every peer.
 
 ## Death and the Revival Ritual (co-op, M4)
 
@@ -94,4 +101,6 @@ PS1 / liminal: 3D rendered to a 480×270 SubViewport, nearest upscale, Bayer 4×
 4. ✅ Co-op foundation (ENet host/join, replication, remote avatars, ghost + Revival Ritual, `tools/nettest.sh`).
 5. ✅ Planets 01 and 02 (light ray; flood + swarm), structures, new props, swimming/drowning, burns, bites.
 6. ✅ NPCs, villages, enemies for 01/02/04: village structures, named villagers that shelter and die by the rules, dialogue (talk/trade/tasks), data-driven enemies that obey the planet's rule.
-7. Planet 03, escalation balancing, polish, GodotSteam (achievements, cloud saves, Steam lobbies), release checklist; infinite-world switch evaluated.
+7. ✅ Planet 03 (giants), mode-scaled escalation, data-driven HUD banners, SteamBridge scaffold (achievements, cloud file calls, lobby stubs; `SteamMultiplayerPeer` transport still to wire), release checklist (`docs/RELEASE.md`), infinite-world switch evaluated (works; left at 1024 by default).
+
+Next (post-M7): Steam P2P transport, a proper sound pass (CC0 packs or more synthesis), balancing from real play, rafts/buoyancy on 02, giants that turn soil or scare predators on 03.

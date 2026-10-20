@@ -10,6 +10,7 @@ const MODULES := {
 	"heavy_gas": "res://src/hazards/heavy_gas_hazard.gd",
 	"light_ray": "res://src/hazards/eclipse_hazard.gd",
 	"flood": "res://src/hazards/flood_hazard.gd",
+	"crush": "res://src/hazards/giant_hazard.gd",
 }
 
 var modules: Array[HazardModule] = []
@@ -61,12 +62,16 @@ func _process(_delta: float) -> void:
 			trigger(m, now)
 
 
+## Multiplies the day fed to the curves (100 / mode day target): see run.gd.
+var escalation_scale: float = 1.0
+
+
 func trigger(m: HazardModule, now: float = -1.0) -> void:
 	if now < 0.0:
 		now = clock.day_time()
-	var inten := curve(m.cfg.get("intensity", 1.0), now, 1.0)
+	var inten := curve(m.cfg.get("intensity", 1.0), now * escalation_scale, 1.0)
 	m.trigger(inten)
-	var interval := curve(m.cfg.get("interval_days", 2.0), now, 2.0)
+	var interval := curve(m.cfg.get("interval_days", 2.0), now * escalation_scale, 2.0)
 	next_event_day[m.id] = now + maxf(interval, 0.05)
 	print("[hazards] %s triggered at day %.2f (intensity %.2f); next in %.2f days" % [m.id, now, inten, interval])
 

@@ -20,13 +20,14 @@ Godot 4 survival game: pick one of four planets, learn its deadly physical rule,
 | Export builds | `.\tools\build.ps1 [windows\|linux\|all]` (templates via the editor once) | `tools/build.sh [windows\|linux\|all]` (downloads templates on first use) |
 | Play a planet directly | `.\tools\godot.ps1 --path . -- --planet=04 --seed=42` | same args |
 | Unit tests | `.\tools\test.ps1 [--filter=gas]` | `tools/test.sh [--filter=gas]` |
-| Smoke boot (headless, fails on script errors) | `.\tools\godot.ps1 --headless --path . -- --smoke --planet=04 --frames=240` | `tools/smoke.sh` (all planets) or `tools/smoke.sh 02` |
+| Smoke boot (headless, fails on script errors) | `.\tools\godot.ps1 --headless --path . -- --smoke --planet=04 --frames=240` | `tools/smoke.sh` (all four planets) or `tools/smoke.sh 02` |
+| Fetch GodotSteam (optional) | see `docs/RELEASE.md` | `tools/get_godotsteam.sh` |
 | Eruption smoke run | add `--trigger --timescale=10` | same |
 | Screenshot without a GPU (Linux, Xvfb + Mesa) | n/a | `tools/screenshot.sh 04 120 [--village --ui=dialogue]` |
 | Dump the official class reference for the pinned version | `.\tools\godot.ps1 --headless --doctool docs\godot-classes --no-docbase` | `tools/docs.sh` |
 | Open the editor | `.\tools\godot.ps1 --path . -e` | `tools/godot.sh --path . -e` |
 
-Command-line user args (after `--`): `--planet=ID`, `--mode=short|standard|long_haul`, `--seed=N`, `--continue`, `--menu`, `--smoke`, `--screenshot`, `--frames=N`, `--trigger`, `--timescale=N`, `--hour=H` (start time of day), `--campfire` (place a lit campfire by spawn), `--savetest` (save at frame 30; run again with `--continue` to verify), `--eye=dx,dy,dz --yaw=r --pitch=r` (debug fly camera offset from spawn), `--village` (fly camera at the nearest settlement), `--ui=inventory|health|crafting|dialogue` (open a screen at boot; dialogue waits for a villager within 20 m).
+Command-line user args (after `--`): `--planet=ID`, `--mode=short|standard|long_haul`, `--seed=N`, `--continue`, `--menu`, `--smoke`, `--screenshot`, `--frames=N`, `--trigger`, `--timescale=N`, `--hour=H` (start time of day), `--campfire` (place a lit campfire by spawn), `--savetest` (save at frame 30; run again with `--continue` to verify), `--eye=dx,dy,dz --yaw=r --pitch=r` (debug fly camera offset from spawn), `--village` (fly camera at the nearest settlement), `--ui=inventory|health|crafting|dialogue` (open a screen at boot; dialogue waits for a villager within 20 m), `--lookat=giant` (camera tracks the giant), `--world_size=N` (0 = unbounded) and `--origin=x,z` (spawn search centre) for far-from-origin tests.
 
 In-game keys: WASD move, Space jump, Shift sprint (drains stamina), Ctrl crouch, LMB dig or hit a creature, RMB place the block in the selected quick slot, 1–6 / wheel select quick slot, Q use the selected item (med → auto-picks the worst part; food → eat/drink; breather → toggle), E take a pickup / harvest a tree or bush / drink from water (refills canteens) / talk to a villager, Tab inventory, H health screen, C crafting, F flashlight, Esc pause menu (resume, save and return to orbit, quit) or close screens, R restart after death. In the inventory: click an item to hold it, click a cell to put it there, R rotates while holding, right-click for Examine/Use/Equip/Open/Split/Drop, 1–6 while hovering assigns a quick slot, G drops. Debug: F3 overlay, F5 trigger hazard, F6 time ×20, F7 fly, F8 reload `data/render_settings.json`.
 
@@ -41,10 +42,10 @@ src/core      Game (autoload: boot/args/state, orbit screen, save slot), Run (on
 src/data      DataRegistry (autoload "Data": loads + validates data/*.json), MaterialProps
 src/net       Net (autoload: ENet host/join + hello/welcome handshake), Session (authority boundary; solo = local host), WorldCommands (validated dig/place), Replicator (every in-run RPC: blocks, grants, hazard phases, packed gas cells, clock, peer states, creatures, pickups, harvests, rituals)
 src/items     ItemInstance (stack, rotation, examined, uses/pool, nested grids), Equipment (pockets, rig, backpack, quick slots)
-src/world     WorldData (chunk dict, bounds clamp, world_size 0 = infinite), Chunk, ChunkGenerator (seeded, deterministic; terrain types hills_lakes/farmland/beach), StructureGen (farmhouses, barns),
+src/world     WorldData (chunk dict, bounds clamp, world_size 0 = infinite), Chunk, ChunkGenerator (seeded, deterministic; terrain types hills_lakes/farmland/beach), StructureGen (farmhouses, barns, hilltop camp, stilt village, low domes, boulders),
               ChunkMesher (face culling + AO, worker threads), ChunkStreamer (load/unload around focus), BlockTextureGen, VoxelRay, PropSpawner
-src/sim       Pure logic, no nodes, unit tested: GasSim, LightRaySim, FluidSim, SwarmSim, Vitals, InventoryGrid, BodyHealth, Crafting, Ritual
-src/hazards   HazardModule (IDLE→WARNING→ACTIVE→RECOVERY, client_mode mirrors), HazardDirector (schedule + escalation; MODULES maps planet JSON `module` names), HeavyGasHazard (04), EclipseHazard (01, LightRaySim), FloodHazard (02, FluidSim + SwarmSim), Telegraph, GasRenderer, WaterRenderer, SwarmRenderer, EclipseVisuals
+src/sim       Pure logic, no nodes, unit tested: GasSim, LightRaySim, FluidSim, SwarmSim, CrushSim, Vitals, InventoryGrid, BodyHealth, Crafting, Ritual
+src/hazards   HazardModule (IDLE→WARNING→ACTIVE→RECOVERY, client_mode mirrors), HazardDirector (schedule + escalation; MODULES maps planet JSON `module` names), HeavyGasHazard (04), EclipseHazard (01, LightRaySim), FloodHazard (02, FluidSim + SwarmSim), GiantHazard (03, CrushSim; footfalls replayed on clients), Telegraph, GasRenderer, WaterRenderer, SwarmRenderer, EclipseVisuals, GiantRenderer
 src/render    PS1Pipeline (low-res SubViewport + post shader), MaterialFactory, shaders/ (terrain, voxel_model, post, ps1_common)
 src/voxel_art VoxelModel, VoxelMesher (greedy), PartRig (rigid parts), VoxelArt (generator registry + cache), generators/
 src/player    PlayerController (first person, camera shake, dig/place through Session), PlayerKit (equipment + body + timed med/examine actions + breather)
@@ -52,7 +53,8 @@ src/entities  Creature (part-rig animation, `_brain` hook, breathes; `remote` mi
               Population (server-side: spawns villagers from structure `npcs` points, enemies by planet rules, feeds perception), ItemPickup, RemotePlayer
 src/ui        PixelFont (+glyph data), HUD, GridView, InventoryUI, HealthScreen, CraftingUI, DialogueUI (talk/trade/tasks), PauseMenu, PlanetSelect (+PlanetSprite)
 src/audio     SoundBank (synthesised AudioStreamWAV)
-data/         materials.json (incl. campfire: emissive/light/heat/station), items.json (blocks, meds, containers, gear, food), recipes.json, palettes.json, planets/*.json (starting_kit, temperatures, harvestable props, creature drops), render_settings.json, modes.json,
+src/steam     SteamBridge (autoload; GodotSteam when present, no-op otherwise: achievements, cloud files, lobby stubs)
+data/         materials.json (incl. campfire: emissive/light/heat/station), items.json (blocks, meds, containers, gear, food), recipes.json, palettes.json, planets/*.json (starting_kit, temperatures, harvestable props, creature drops), render_settings.json, modes.json, achievements.json,
               npcs/villagers.json (kinds: names, lines, trades, tasks), enemies.json (kinds: generator, hp, damage, hunts_in, flee, breathes, despawn_when)
 tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 ```

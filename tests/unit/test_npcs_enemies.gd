@@ -28,7 +28,7 @@ func test_village_structures_and_npc_points() -> void:
 
 func test_npc_and_enemy_data_consistent() -> void:
 	var npcs: Dictionary = Data.load_json("res://data/npcs/villagers.json").get("kinds", {})
-	assert_eq(npcs.size(), 3)
+	assert_eq(npcs.size(), 4)
 	for k in npcs:
 		var cfg: Dictionary = npcs[k]
 		for t in cfg.get("trades", []):
@@ -38,7 +38,7 @@ func test_npc_and_enemy_data_consistent() -> void:
 			assert_true(Data.items.has(str(task["need"]["id"])), "%s task need" % k)
 			assert_true(Data.items.has(str(task["reward"]["id"])), "%s task reward" % k)
 	var enemies: Dictionary = Data.load_json("res://data/enemies.json").get("kinds", {})
-	assert_eq(enemies.size(), 3)
+	assert_eq(enemies.size(), 4)
 	for k in enemies:
 		var e: Dictionary = enemies[k]
 		assert_true(VoxelArt.GENERATORS.has(str(e["generator"])), "%s generator exists" % k)

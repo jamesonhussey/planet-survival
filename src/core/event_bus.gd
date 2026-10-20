@@ -23,5 +23,6 @@ signal player_damaged(part: String, amount: float, kind: String)
 # UI / flow.
 signal run_started(planet_id: String, mode_id: String)
 signal run_ended(won: bool, day: int)
+signal achievement(id: String)
 signal toast(text: String, seconds: float)
 signal render_settings_reloaded(settings: Dictionary)

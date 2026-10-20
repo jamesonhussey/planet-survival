@@ -20,6 +20,6 @@ jobs:
       - name: Unit tests
         run: tools/test.sh
       - name: Smoke boot (all planets)
-        run: tools/smoke.sh 01 02 04
+        run: tools/smoke.sh 01 02 03 04
       - name: Co-op smoke (host + client)
         run: tools/nettest.sh

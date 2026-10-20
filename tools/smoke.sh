@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 tools/ensure_import.sh
 PLANETS=("$@")
-if [[ ${#PLANETS[@]} -eq 0 ]]; then PLANETS=(01 02 04); fi
+if [[ ${#PLANETS[@]} -eq 0 ]]; then PLANETS=(01 02 03 04); fi
 FRAMES="${SMOKE_FRAMES:-240}"
 status=0
 for p in "${PLANETS[@]}"; do
