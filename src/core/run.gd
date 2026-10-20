@@ -64,6 +64,7 @@ var hud: HUD
 var inventory_ui: InventoryUI
 var health_ui: HealthScreen
 var dialogue_ui: DialogueUI
+var help_ui: HelpScreen
 var population: Population
 var _want_dialogue: bool = false
 var pickups_root: Node3D
@@ -145,6 +146,7 @@ func _ready() -> void:
 	match str(Game.args.get("ui", "")):
 		"inventory": _open_screen(inventory_ui)
 		"health": _open_screen(health_ui)
+		"help": _open_screen(help_ui)
 	# --campfire: place a lit campfire two blocks from spawn (screenshots/tests).
 	if Game.args.has("campfire"):
 		var cx := int(floor(spawn_point.x)) + 2
@@ -564,7 +566,7 @@ func _become_ghost(cause: String) -> void:
 	inventory_ui._rebuild()
 	_refresh_quick()
 	hud.set_status("GHOST  a friend must set your tag on a cairn and keep a fire through a night")
-	EventBus.toast.emit("You died (%s). You can watch. Your tag lies where you fell." % cause.replace("_", " "), 6.0)
+	EventBus.toast.emit("You died.", 4.0)
 	if sounds != null:
 		sounds.stop_all_loops()
 		sounds.play("ui_low")
@@ -881,8 +883,6 @@ func _build_presentation() -> void:
 	hud.name = "HUD"
 	view.add_child(hud)
 	hud.debug_provider = _debug_text
-	for h in planet.get("hazards", []):
-		hud.banners[str(h.get("id", ""))] = h.get("banners", {})
 	player.hotbar_changed.connect(func(_i: int) -> void: _refresh_quick())
 	kit.equipment.changed.connect(_refresh_quick)
 	_refresh_quick()
@@ -918,6 +918,11 @@ func _build_presentation() -> void:
 	dialogue_ui.setup(kit)
 	dialogue_ui.give_items = func(id: String, count: int) -> void: _give_or_drop(id, count, player.global_position)
 	dialogue_ui.closed.connect(_on_screen_closed)
+	help_ui = HelpScreen.new()
+	help_ui.name = "HelpScreen"
+	view.add_child(help_ui)
+	help_ui.setup()
+	help_ui.closed.connect(_on_screen_closed)
 	if session.is_server():
 		population = Population.new()
 		population.name = "Population"
@@ -937,8 +942,6 @@ func _build_presentation() -> void:
 			save_game()
 		get_tree().quit())
 
-	EventBus.toast.emit("%s  -  %s" % [planet.get("name", ""), planet.get("tagline", "")], 5.0)
-	EventBus.toast.emit("LMB dig/hit, RMB place, E take/harvest/drink, Q use, Tab inventory, H health, C craft, F5 eruption", 8.0)
 
 
 # ---- screens ----
@@ -950,6 +953,8 @@ func _open_screen(screen: CanvasLayer, med: ItemInstance = null) -> void:
 		crafting_ui.open()
 	elif screen == dialogue_ui:
 		pass  # opened by _talk_to with its villager
+	elif screen == help_ui:
+		help_ui.open()
 	else:
 		(screen as InventoryUI).open()
 	player.input_enabled = false
@@ -961,7 +966,7 @@ func _open_screen(screen: CanvasLayer, med: ItemInstance = null) -> void:
 
 
 func _on_screen_closed() -> void:
-	if inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open or dialogue_ui.is_open or ended:
+	if inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open or dialogue_ui.is_open or help_ui.is_open or ended:
 		return
 	hud.root.visible = true
 	player.input_enabled = true
@@ -970,7 +975,7 @@ func _on_screen_closed() -> void:
 
 
 func any_screen_open() -> bool:
-	return inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open or dialogue_ui.is_open
+	return inventory_ui.is_open or health_ui.is_open or crafting_ui.is_open or pause_menu.is_open or dialogue_ui.is_open or help_ui.is_open
 
 
 func _open_pause() -> void:
@@ -1084,7 +1089,7 @@ func _apply_save(meta: Dictionary) -> void:
 func _close_all_screens() -> void:
 	if pause_menu != null and pause_menu.is_open:
 		pause_menu.close()
-	for s in [inventory_ui, health_ui, crafting_ui, dialogue_ui]:
+	for s in [inventory_ui, health_ui, crafting_ui, dialogue_ui, help_ui]:
 		if s.is_open:
 			s.close()
 
@@ -1099,27 +1104,27 @@ func _toggle_screen(screen: CanvasLayer) -> void:
 
 func _update_aim_text(h: VoxelRay.Hit) -> void:
 	if _nearest_pickup != null:
-		hud.set_aim_text("E: take %s" % _nearest_pickup.item.display_name())
+		hud.set_aim_text("%s  [E]" % _nearest_pickup.item.display_name())
 		return
 	var ih := player.interact_hit
 	if not ih.is_empty() and (not h.hit or float(ih["distance"]) < h.distance + 0.5):
 		var col: Object = ih["collider"]
 		if col is Villager:
 			var v := col as Villager
-			hud.set_aim_text("%s%s" % [v.display_name, "  (dead)" if v.dead else "  (E: talk)"])
+			hud.set_aim_text("%s%s" % [v.display_name, "  (dead)" if v.dead else "  [E]"])
 			return
 		if col is Creature:
-			hud.set_aim_text("%s%s  (LMB hit)" % [str((col as Creature).kind).replace("_", " ").capitalize(), " (dead)" if (col as Creature).dead else ""])
+			hud.set_aim_text("%s%s" % [str((col as Creature).kind).replace("_", " ").capitalize(), "  (dead)" if (col as Creature).dead else ""])
 			return
 		var prop := props.prop_from_collider(col)
 		if prop != null:
 			var cfg := props.harvest_config(prop)
 			var gname := str(prop.get_meta("generator", "prop")).replace("_", " ")
-			hud.set_aim_text("%s  (E: harvest %s)" % [gname.capitalize(), str(cfg.get("id", ""))] if not cfg.is_empty() else gname.capitalize())
+			hud.set_aim_text("%s  [E]" % gname.capitalize() if not cfg.is_empty() else gname.capitalize())
 			return
 	if h.hit:
 		var mp := Data.block(world.get_block(h.pos))
-		hud.set_aim_text(mp.display + ("  (E: drink / refill)" if mp.fluid else ""))
+		hud.set_aim_text(mp.display + ("  [E]" if mp.fluid else ""))
 	else:
 		hud.set_aim_text("")
 
@@ -1135,7 +1140,7 @@ func _refresh_quick() -> void:
 
 func _on_use_item(item: ItemInstance) -> void:
 	if item == null:
-		EventBus.toast.emit("Empty slot", 0.8)
+		pass
 		return
 	if item.id == "breather":
 		kit.toggle_breather()
@@ -1143,7 +1148,7 @@ func _on_use_item(item: ItemInstance) -> void:
 	if item.category() == "medical":
 		if not item.examined:
 			if kit.start_examine(item):
-				EventBus.toast.emit("Examining...", 1.0)
+				pass
 			return
 		# Pick the part that needs it most.
 		var best := ""
@@ -1169,14 +1174,14 @@ func _on_use_item(item: ItemInstance) -> void:
 	if item.category() == "food":
 		var plan := kit.start_eat(item)
 		if plan["ok"]:
-			EventBus.toast.emit("%s..." % ("Drinking" if float((item.def.get("food", {}) as Dictionary).get("thirst", 0.0)) > 0.0 else "Eating"), 1.0)
+			pass
 		return
 	if item.is_block():
-		EventBus.toast.emit("Right-click to place %s" % item.display_name(), 1.0)
+		pass
 		return
 	if not item.examined:
 		kit.start_examine(item)
-		EventBus.toast.emit("Examining...", 1.0)
+		pass
 
 
 func _on_action_finished(kind: String, result: Dictionary) -> void:
@@ -1243,7 +1248,7 @@ func _swat_roaches() -> void:
 		killed += flood_hazard.swarm.kill_in_cell(c, 3)
 	if killed > 0:
 		flood_hazard.swarm.prune_dead()
-		EventBus.toast.emit("Squashed %d" % killed, 0.8)
+		pass
 		if kit.rng.randf() < 0.3 * killed:
 			_give_or_drop("roach_meat", 1, player.global_position)
 
@@ -1315,7 +1320,7 @@ func _on_attack(target: Node) -> void:
 		player.add_shake(0.08, 0.15)
 		if sounds != null:
 			sounds.play("dig")
-		EventBus.toast.emit("Killed %s" % cr.kind if died else "Hit %s" % cr.kind, 0.8)
+		pass
 
 
 func _nearest_village(from: Vector3, radius_chunks: int) -> Dictionary:
@@ -1361,7 +1366,7 @@ func _on_enemy_attack(target_pos: Vector3, amount: float, en: Enemy) -> void:
 		var limb: String = BodyHealth.PARTS[kit.rng.randi_range(1, 6)]
 		kit.body.damage(limb, amount, "bite", kit.rng)
 		player.add_shake(0.12, 0.25)
-		EventBus.toast.emit("%s attacks!" % str(en.kind).replace("_", " ").capitalize(), 0.8)
+		pass
 		if sounds != null:
 			sounds.play("heartbeat")
 		return
@@ -1391,12 +1396,12 @@ func _on_footfall(pos: Vector3, force: float, radius: float, _seq: int) -> void:
 		if giant_hazard.sim.crushed(player.global_position, cx, cz, radius, force):
 			for part in BodyHealth.PARTS:
 				kit.body.damage(part, giant_hazard.crush_damage / BodyHealth.PARTS.size(), "crush", kit.rng)
-			EventBus.toast.emit("Crushed.", 3.0)
+			pass
 		elif dist < radius + 2.5:
 			kit.body.damage("left_leg", giant_hazard.near_miss_damage * 0.5, "blunt", kit.rng)
 			kit.body.damage("right_leg", giant_hazard.near_miss_damage * 0.5, "blunt", kit.rng)
 			player.velocity += Vector3(player.global_position.x - pos.x, 0.0, player.global_position.z - pos.z).normalized() * 6.0 + Vector3.UP * 4.0
-			EventBus.toast.emit("Thrown off your feet!", 1.5)
+			pass
 	if session.is_online():
 		for peer in replicator.peer_states:
 			if peer == session.local_peer_id or bool(replicator.peer_states[peer].get("ghost", false)):
@@ -1422,7 +1427,7 @@ func _on_landed(impact: float) -> void:
 	kit.body.damage("left_leg", dmg * 0.5, "fall", kit.rng)
 	kit.body.damage("right_leg", dmg * 0.5, "fall", kit.rng)
 	player.add_shake(0.3, 0.4)
-	EventBus.toast.emit("Hard landing (-%d)" % int(dmg), 1.5)
+	pass
 	if sounds != null:
 		sounds.play("heartbeat")
 
@@ -1487,7 +1492,7 @@ func _on_interact() -> void:
 		take_pickup(_nearest_pickup)
 		return
 	if kit.busy():
-		EventBus.toast.emit("Busy", 0.6)
+		pass
 		return
 	var ih := player.interact_hit
 	if not ih.is_empty() and ih["collider"] is Villager:
@@ -1498,10 +1503,10 @@ func _on_interact() -> void:
 		if prop != null:
 			var cfg := props.harvest_config(prop)
 			if cfg.is_empty():
-				EventBus.toast.emit("Nothing to take here yet", 1.0)
+				pass
 				return
 			if kit.start_harvest(prop, cfg, str(prop.get_meta("generator", "prop"))):
-				EventBus.toast.emit("Harvesting...", 1.0)
+				pass
 			return
 	# A tag set on a cairn starts a vigil (co-op revival).
 	var aim := player._aim
@@ -1511,7 +1516,7 @@ func _on_interact() -> void:
 			replicator.send_place_tag(aim.pos, int(tag.data.get("owner", 0)), str(tag.data.get("owner_name", "someone")))
 			kit.equipment.remove_item(tag)
 			return
-		EventBus.toast.emit("Select a Survivor's Tag and press E to start the vigil.", 2.0)
+		pass
 		return
 	# Water: drink and refill canteens.
 	if aim.hit and Data.block(world.get_block(aim.pos)).fluid:
@@ -1536,7 +1541,7 @@ func _debug_text() -> String:
 
 
 func _on_day_changed(day: int) -> void:
-	EventBus.toast.emit("Day %d" % day, 3.0)
+	pass
 	if not ended and day > int(mode.get("days", 100)):
 		_finish(true)
 
@@ -1751,6 +1756,11 @@ func _process(_delta: float) -> void:
 		elif Input.is_action_just_pressed("pause"):
 			Game.return_to_orbit()
 		return
+	if Input.is_action_just_pressed("help"):
+		if help_ui.is_open:
+			_close_all_screens()
+		else:
+			_open_screen(help_ui)
 	if Input.is_action_just_pressed("inventory"):
 		_toggle_screen(inventory_ui)
 	elif Input.is_action_just_pressed("health_screen"):

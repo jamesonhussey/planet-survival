@@ -23,6 +23,7 @@ const ACTIONS := {
 	"debug_fly": [KEY_F7],
 	"debug_reload_render": [KEY_F8],
 	"debug_overlay": [KEY_F3],
+	"help": [KEY_F1],
 	"pause": [KEY_ESCAPE],
 	"restart": [KEY_R],
 	"use_item": [KEY_Q],

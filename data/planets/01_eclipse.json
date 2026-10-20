@@ -87,12 +87,6 @@
         "warning": [
           {
             "t": 0,
-            "type": "toast",
-            "text": "The edge of the moon is glowing.",
-            "seconds": 4
-          },
-          {
-            "t": 0,
             "type": "sound",
             "id": "deep_rumble",
             "loop": true
@@ -104,21 +98,9 @@
             "seconds": 3
           },
           {
-            "t": 25,
-            "type": "toast",
-            "text": "The light is sliding across the fields.",
-            "seconds": 4
-          },
-          {
             "t": 30,
             "type": "sound",
             "id": "birds_scatter"
-          },
-          {
-            "t": 45,
-            "type": "toast",
-            "text": "Get under stone. Now.",
-            "seconds": 5
           },
           {
             "t": 50,
@@ -134,30 +116,12 @@
             "id": "gas_hiss",
             "loop": true,
             "volume_db": -6
-          },
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "The sun is out.",
-            "seconds": 4
           }
         ],
-        "recovery": [
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "The moon slides back. The dark returns.",
-            "seconds": 4
-          }
-        ]
+        "recovery": []
       },
       "active_tint": "#fff2c8",
-      "active_tint_amount": 0.35,
-      "banners": {
-        "warning": "THE MOON IS SLIPPING",
-        "active": "GET OUT OF THE LIGHT",
-        "recovery": "THE LIGHT IS FADING"
-      }
+      "active_tint_amount": 0.35
     }
   ],
   "props": [

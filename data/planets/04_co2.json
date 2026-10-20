@@ -90,12 +90,6 @@
         "warning": [
           {
             "t": 0,
-            "type": "toast",
-            "text": "The lake is bubbling.",
-            "seconds": 4
-          },
-          {
-            "t": 0,
             "type": "sound",
             "id": "deep_rumble",
             "loop": true
@@ -122,12 +116,6 @@
             "intensity": 1.0
           },
           {
-            "t": 35,
-            "type": "toast",
-            "text": "Something is wrong with the air near the water.",
-            "seconds": 4
-          },
-          {
             "t": 40,
             "type": "shake",
             "strength": 0.35,
@@ -140,27 +128,9 @@
             "type": "sound",
             "id": "gas_hiss",
             "loop": true
-          },
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "The lake breathes out.",
-            "seconds": 5
           }
         ],
-        "recovery": [
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "The air begins to clear.",
-            "seconds": 4
-          }
-        ]
-      },
-      "banners": {
-        "warning": "SOMETHING IS WRONG",
-        "active": "GET TO HIGH GROUND",
-        "recovery": "THE AIR IS CLEARING"
+        "recovery": []
       }
     }
   ],

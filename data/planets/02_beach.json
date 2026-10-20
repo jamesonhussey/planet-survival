@@ -95,22 +95,10 @@
         "warning": [
           {
             "t": 0,
-            "type": "toast",
-            "text": "The tide is pulling out. Too far.",
-            "seconds": 4
-          },
-          {
-            "t": 0,
             "type": "sound",
             "id": "deep_rumble",
             "loop": true,
             "volume_db": -4
-          },
-          {
-            "t": 15,
-            "type": "toast",
-            "text": "The sky is turning the colour of a bruise.",
-            "seconds": 4
           },
           {
             "t": 30,
@@ -122,12 +110,6 @@
             "type": "shake",
             "strength": 0.1,
             "seconds": 3
-          },
-          {
-            "t": 55,
-            "type": "toast",
-            "text": "Something is moving under the sand.",
-            "seconds": 4
           }
         ],
         "active": [
@@ -136,36 +118,12 @@
             "type": "sound",
             "id": "gas_hiss",
             "loop": true
-          },
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "Here comes the water.",
-            "seconds": 4
-          },
-          {
-            "t": 8,
-            "type": "toast",
-            "text": "ROACHES.",
-            "seconds": 3
           }
         ],
-        "recovery": [
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "The water is going back.",
-            "seconds": 4
-          }
-        ]
+        "recovery": []
       },
       "active_tint": "#6a7a9a",
-      "active_tint_amount": 0.3,
-      "banners": {
-        "warning": "THE TIDE IS WRONG",
-        "active": "GET ABOVE THE WATER",
-        "recovery": "THE WATER IS GOING BACK"
-      }
+      "active_tint_amount": 0.3
     }
   ],
   "props": [

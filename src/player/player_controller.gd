@@ -72,7 +72,7 @@ func _ready() -> void:
 	add_child(head)
 	camera = Camera3D.new()
 	camera.name = "Camera"
-	camera.fov = 75.0
+	camera.fov = float(Data.render.get("fov", 104.0))
 	camera.near = 0.05
 	camera.far = 300.0
 	head.add_child(camera)

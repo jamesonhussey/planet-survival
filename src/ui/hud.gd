@@ -14,7 +14,8 @@ var hp_fill: ColorRect
 var quick_row: HBoxContainer
 var quick_boxes: Array[Control] = []
 var quick_labels: Array[Label] = []
-var warning_label: Label
+var oxygen_bar: ColorRect
+var oxygen_label: Label
 var toast_box: VBoxContainer
 var debug_label: Label
 var end_overlay: Control
@@ -34,8 +35,6 @@ var temp_label: Label
 
 var _toasts: Array = []  # [label, time_left]
 var debug_provider: Callable = Callable()
-var _warning_phase: int = 0
-var _warning_time: float = 0.0
 
 
 func _ready() -> void:
@@ -53,11 +52,11 @@ func _ready() -> void:
 	status_label = _label(root, Vector2(6, 16), "")
 	status_label.modulate = Color(1.0, 0.8, 0.6)
 
-	var oxygen_bar := _bar(root, Vector2(6, 246), Color(0.25, 0.75, 0.95))
+	oxygen_bar = _bar(root, Vector2(6, 246), Color(0.25, 0.75, 0.95))
 	oxygen_fill = oxygen_bar.get_child(0)
 	var hp_bar := _bar(root, Vector2(6, 256), Color(0.85, 0.25, 0.25))
 	hp_fill = hp_bar.get_child(0)
-	_label(root, Vector2(80, 244), "O2")
+	oxygen_label = _label(root, Vector2(80, 244), "O2")
 	_label(root, Vector2(80, 254), "HP")
 	# Survival needs: right side, stacked.
 	var x0 := 390.0
@@ -93,14 +92,6 @@ func _ready() -> void:
 		quick_row.add_child(box)
 		quick_boxes.append(box)
 		quick_labels.append(l)
-
-	warning_label = _label(root, Vector2(0, 30), "")
-	warning_label.theme = theme_big
-	warning_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	warning_label.offset_top = 28
-	warning_label.offset_bottom = 60
-	warning_label.modulate = Color(1.0, 0.85, 0.3)
 
 	toast_box = VBoxContainer.new()
 	toast_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
@@ -254,6 +245,10 @@ func _on_vitals(v: Dictionary) -> void:
 	oxygen_fill.size.x = 68.0 * clampf(float(v.get("oxygen", 1.0)), 0.0, 1.0)
 	hp_fill.size.x = 68.0 * clampf(float(v.get("hp", 100.0)) / maxf(float(v.get("max_hp", 100.0)), 1.0), 0.0, 1.0)
 	oxygen_fill.color = Color(0.95, 0.3, 0.2) if bool(v.get("suffocating", false)) else Color(0.25, 0.75, 0.95)
+	# The air meter only appears when the air is not fine.
+	var show_o2 := float(v.get("oxygen", 1.0)) < 0.999 or bool(v.get("suffocating", false))
+	oxygen_bar.visible = show_o2
+	oxygen_label.visible = show_o2
 	hunger_fill.size.x = 68.0 * clampf(float(v.get("hunger", 1.0)), 0.0, 1.0)
 	thirst_fill.size.x = 68.0 * clampf(float(v.get("thirst", 1.0)), 0.0, 1.0)
 	stamina_fill.size.x = 68.0 * clampf(float(v.get("stamina", 1.0)), 0.0, 1.0)
@@ -298,26 +293,15 @@ func _on_vitals(v: Dictionary) -> void:
 	status_label.text = "  ".join(bits)
 
 
-## hazard id -> {"warning": text, "active": text, "recovery": text} from the planet's hazard config.
-var banners: Dictionary = {}
-
-
-func _on_hazard_phase(id: String, phase: int, _intensity: float) -> void:
-	_warning_phase = phase
-	_warning_time = 0.0
-	var b: Dictionary = banners.get(id, {})
-	match phase:
-		HazardModule.Phase.WARNING: warning_label.text = str(b.get("warning", "SOMETHING IS WRONG"))
-		HazardModule.Phase.ACTIVE: warning_label.text = str(b.get("active", "TAKE COVER"))
-		HazardModule.Phase.RECOVERY: warning_label.text = str(b.get("recovery", "IT IS PASSING"))
-		_: warning_label.text = ""
+## No banners: the world itself is the warning (sounds, sky, animals, tremors).
+func _on_hazard_phase(_id: String, _phase: int, _intensity: float) -> void:
+	pass
 
 
 func _on_run_ended(won: bool, day: int) -> void:
 	end_overlay.visible = true
 	end_title.text = "YOU MADE IT" if won else "YOU DIED"
 	end_body.text = ("Survived %d days.  Esc returns to orbit." % day) if won else ("Day %d.  R: try again   Esc: back to orbit" % day)
-	warning_label.text = ""
 
 
 func set_death_cause(cause: String) -> void:
@@ -338,10 +322,5 @@ func _process(delta: float) -> void:
 			_toasts.remove_at(i)
 		elif _toasts[i][1] < 0.6:
 			l.modulate.a = _toasts[i][1] / 0.6
-	if _warning_phase == HazardModule.Phase.WARNING or _warning_phase == HazardModule.Phase.ACTIVE:
-		_warning_time += delta
-		warning_label.visible = fmod(_warning_time, 1.0) < 0.7
-	else:
-		warning_label.visible = true
 	if debug_label.visible and debug_provider.is_valid():
 		debug_label.text = str(debug_provider.call())

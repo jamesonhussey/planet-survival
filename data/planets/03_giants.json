@@ -90,12 +90,6 @@
         "warning": [
           {
             "t": 0,
-            "type": "toast",
-            "text": "The ground hums. Far off, for now.",
-            "seconds": 4
-          },
-          {
-            "t": 0,
             "type": "sound",
             "id": "deep_rumble",
             "loop": true,
@@ -105,44 +99,13 @@
             "t": 20,
             "type": "sound",
             "id": "birds_scatter"
-          },
-          {
-            "t": 30,
-            "type": "toast",
-            "text": "Closer. The grazers are running.",
-            "seconds": 4
-          },
-          {
-            "t": 45,
-            "type": "toast",
-            "text": "Get under rock. Not wood. Rock.",
-            "seconds": 5
           }
         ],
-        "active": [
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "It is here.",
-            "seconds": 3
-          }
-        ],
-        "recovery": [
-          {
-            "t": 0,
-            "type": "toast",
-            "text": "It is walking away.",
-            "seconds": 4
-          }
-        ]
+        "active": [],
+        "recovery": []
       },
       "active_tint": "#6a6a7a",
-      "active_tint_amount": 0.2,
-      "banners": {
-        "warning": "THE GROUND IS HUMMING",
-        "active": "GET UNDER ROCK",
-        "recovery": "IT IS WALKING AWAY"
-      }
+      "active_tint_amount": 0.2
     }
   ],
   "props": [

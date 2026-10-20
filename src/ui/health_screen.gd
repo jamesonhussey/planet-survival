@@ -133,7 +133,7 @@ func _refresh() -> void:
 		b.pressed.connect(func() -> void:
 			if not it.examined:
 				kit.start_examine(it)
-				EventBus.toast.emit("Examining...", 1.0)
+				pass
 				return
 			selected_med = it
 			_refresh())

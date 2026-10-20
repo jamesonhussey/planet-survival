@@ -14,5 +14,6 @@
   "scanline_strength": 0.0,
   "vignette": 0.25,
   "flashlight_cone_degrees": 28,
-  "flashlight_energy": 3.0
+  "flashlight_energy": 3.0,
+  "fov": 104
 }
