@@ -34,6 +34,13 @@ From orbit the player sees four planets (01–04) and picks one. Each looks liva
 | 2026-10-20 | Weight limit 25 kg (reduced by arm injuries); over it, speed drops 1.5%/kg to 60% | Makes block stacks a real choice without Minecraft-style infinite pockets |
 | 2026-10-20 | Planet gear example: breather mask (85% filtering, 90 s consumable filters, 1.2 kg) | One costed option among several (high ground, airtight room, trenches) |
 | 2026-10-20 | Fall damage above 11 m/s landing speed goes to the legs as blunt damage | Gives the health system a reason to exist before enemies arrive |
+| 2026-10-20 | Survival needs: hunger empties in 36 game hours, thirst in 20; at zero they cost 6 / 10 HP per game hour. Body temperature drifts toward the felt ambient (day/night from the planet mood, +shelter, +campfire); below 33 °C or above 41 °C costs HP | Pressure without a timer; every need has a readable fix (eat, drink, roof, fire) |
+| 2026-10-20 | Food spoils in game hours (`spoil_hours`) into Spoiled Food (80% poison chance); raw meat 35%; cooking at a campfire removes it | Cooking matters, as the brief asks |
+| 2026-10-20 | Campfire is a block with `emissive`, `light`, `heat` and `station` properties, placed from a crafted item | Keeps everything on the block grid; hazards can read its flammability later |
+| 2026-10-20 | Resources: trees are harvested with E (logs + fiber, tree removed), bushes regrow in 24 h, grazers drop meat when killed by the player (not by gas), lake water is drinkable | Closes the gather → craft → build loop on planet 04 |
+| 2026-10-20 | One save slot per run (`user://saves/current.*`), edited chunks only, autosave every 3 real minutes, deleted on death or win | Permadeath per the player's answer; saves exist for quitting, not retrying |
+| 2026-10-20 | Orbit screen: all four planets shown, uncharted ones greyed with a note | The fantasy of choosing is there from day one |
+| 2026-10-20 | Day/night cycle drives sun angle, sky, fog and ambient; nights reach 85% darkness on 04 | Flashlight and campfire earn their keep |
 
 ## Planets
 
@@ -70,7 +77,7 @@ PS1 / liminal: 3D rendered to a 480×270 SubViewport, nearest upscale, Bayer 4×
 
 1. ✅ Vertical slice on 04: movement, streamed voxel terrain, dig/place, 15 materials with properties, GasSim + director + telegraph, oxygen, PS1 pipeline, micro-voxel tree/lantern/grazer, debug tools, tests.
 2. ✅ Tarkov inventory (grid, rotation, nested containers, weight, examine, quick slots, pickups) + body-part health, status effects, meds with use times, health screen, fall damage, breather mask.
-3. Survival loop: hunger/thirst/temperature/stamina, food & spoilage & cooking, crafting, day counter, win/lose, planet select, save/load, export presets + build script.
+3. ✅ Survival loop: hunger/thirst/temperature/stamina, food & spoilage & cooking, crafting from `recipes.json`, campfire, harvesting, hunting, day/night, planet select, pause menu, save/load, export presets + build scripts.
 4. Co-op foundation (ENet, replication, ghost + ritual) so later systems are multiplayer-aware.
 5. Planets 01 and 02 (light ray; flood + swarm).
 6. NPCs, villages, enemies for 01/02/04.

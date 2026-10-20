@@ -20,6 +20,10 @@ var flammability: float = 0.0
 var strength: float = 0.0
 var buoyancy: float = 0.0
 var weight: float = 0.0
+var emissive: float = 0.0     # self-illumination (rendered via vertex colour alpha)
+var light: float = 0.0        # omni light range in blocks (0 = none)
+var heat: float = 0.0         # warmth source strength 0..1
+var station: String = ""      # crafting station this block provides
 var texture: Dictionary = {}
 
 
@@ -43,6 +47,10 @@ static func from_dict(d: Dictionary) -> MaterialProps:
 	m.strength = float(d.get("strength", 0.0))
 	m.buoyancy = clampf(float(d.get("buoyancy", 0.0)), -1.0, 1.0)
 	m.weight = float(d.get("weight", 0.0))
+	m.emissive = clampf(float(d.get("emissive", 0.0)), 0.0, 1.0)
+	m.light = float(d.get("light", 0.0))
+	m.heat = clampf(float(d.get("heat", 0.0)), 0.0, 1.0)
+	m.station = str(d.get("station", ""))
 	var tex: Variant = d.get("texture", {})
 	m.texture = tex if tex is Dictionary else {}
 	return m

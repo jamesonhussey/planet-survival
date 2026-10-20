@@ -30,7 +30,10 @@ void fragment() {
 	} else if (tex.a < 0.5) {
 		discard;
 	}
-	ALBEDO = tex.rgb * COLOR.rgb;
+	// COLOR.a < 1 marks emissive blocks (campfires): they glow regardless of light.
+	float glow = 1.0 - COLOR.a;
+	ALBEDO = mix(tex.rgb * COLOR.rgb, tex.rgb, glow);
+	EMISSION = tex.rgb * glow * 1.6;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.0;

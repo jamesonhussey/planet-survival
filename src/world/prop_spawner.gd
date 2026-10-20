@@ -26,6 +26,12 @@ var _lights: Array[OmniLight3D] = []
 ## wake up inside a tree).
 var keep_clear: Vector3 = Vector3(INF, INF, INF)
 var keep_clear_radius: float = 5.0
+## Harvest bookkeeping (deterministic world => keyed by cell).
+var removed: Dictionary = {}        # Vector2i cell -> true (trees cut down)
+var regrow_at: Dictionary = {}      # Vector2i cell -> game day_time when a bush regrows
+var clock: GameClock = null
+
+signal creature_spawned(creature: Creature)
 
 
 func setup(world_data: WorldData, gen: ChunkGenerator, planet_cfg: Dictionary, seed: int, mat: Material, emissive: Material) -> void:
@@ -105,6 +111,8 @@ func _populate(c: Vector2i) -> void:
 				continue
 			if Vector2(x + 0.5 - keep_clear.x, z + 0.5 - keep_clear.z).length() < keep_clear_radius:
 				continue
+			if removed.has(Vector2i(x, z)):
+				continue
 			var y := world.surface_y(x, z)
 			if y < 0:
 				continue
@@ -125,24 +133,32 @@ func _populate(c: Vector2i) -> void:
 				cr.name = "%s_%d_%d" % [gen_name, x, z]
 				creatures_root.add_child(cr)
 				cr.setup(rig, material, rng.randi(), gen_name)
+				cr.drops = p.get("drops", [])
 				cr.global_position = pos + Vector3(0, 0.2, 0)
 				cr.rotation.y = rng.randf() * TAU
 				creatures.append(cr)
 				nodes.append(cr)
+				creature_spawned.emit(cr)
 			else:
 				var n := rig.instantiate(material, emissive_material)
 				n.name = "%s_%d_%d" % [gen_name, x, z]
 				n.position = pos
 				n.rotation.y = rng.randf() * TAU
+				n.set_meta("prop", p)
+				n.set_meta("cell", Vector2i(x, z))
+				n.set_meta("generator", gen_name)
 				add_child(n)
-				if rig.collision_box.size.length_squared() > 0.0:
+				_apply_regrow_state(n)
+				if rig.collision_box.size.length_squared() > 0.0 or p.has("harvest"):
 					var body := StaticBody3D.new()
-					body.collision_layer = 1
+					body.collision_layer = 1 if rig.collision_box.size.length_squared() > 0.0 else 8
+					body.set_meta("prop_node", n.get_path())
 					var cs := CollisionShape3D.new()
 					var box := BoxShape3D.new()
-					box.size = rig.collision_box.size
+					var cb := rig.collision_box if rig.collision_box.size.length_squared() > 0.0 else AABB(Vector3(-0.6, 0, -0.6), Vector3(1.2, maxf(rig.height, 0.6), 1.2))
+					box.size = cb.size
 					cs.shape = box
-					cs.position = rig.collision_box.position + rig.collision_box.size * 0.5
+					cs.position = cb.position + cb.size * 0.5
 					body.add_child(cs)
 					n.add_child(body)
 				if gen_name == "lantern" and _lights.size() < _light_budget:
@@ -162,3 +178,58 @@ func prop_count() -> int:
 	for arr in _columns.values():
 		n += arr.size()
 	return n
+
+
+## The prop node a physics body belongs to (bodies carry "prop_node" meta).
+func prop_from_collider(collider: Object) -> Node3D:
+	if collider == null or not collider.has_meta("prop_node"):
+		return null
+	return get_node_or_null(collider.get_meta("prop_node")) as Node3D
+
+
+func harvest_config(prop: Node3D) -> Dictionary:
+	if prop == null or not prop.has_meta("prop"):
+		return {}
+	var cfg: Dictionary = (prop.get_meta("prop") as Dictionary).get("harvest", {})
+	if cfg.is_empty():
+		return {}
+	var cell: Vector2i = prop.get_meta("cell")
+	if regrow_at.has(cell) and clock != null and clock.day_time() < float(regrow_at[cell]):
+		return {}  # still regrowing
+	return cfg
+
+
+## Apply a harvest: trees are removed for good, bushes shrink until regrown.
+func harvest(prop: Node3D) -> void:
+	var cfg := harvest_config(prop)
+	if cfg.is_empty():
+		return
+	var cell: Vector2i = prop.get_meta("cell")
+	if bool(cfg.get("remove", false)):
+		removed[cell] = true
+		for arr in _columns.values():
+			arr.erase(prop)
+		prop.queue_free()
+	else:
+		var hours := float(cfg.get("regrow_hours", 24.0))
+		if clock != null:
+			regrow_at[cell] = clock.day_time() + hours / 24.0
+		_apply_regrow_state(prop)
+
+
+func _apply_regrow_state(prop: Node3D) -> void:
+	var cell: Vector2i = prop.get_meta("cell")
+	var growing := regrow_at.has(cell) and clock != null and clock.day_time() < float(regrow_at[cell])
+	var rig := prop.get_node_or_null("Rig") as Node3D
+	if rig != null:
+		rig.scale = Vector3(0.45, 0.45, 0.45) if growing else Vector3.ONE
+
+
+func _process(_delta: float) -> void:
+	# Regrow check every couple of seconds.
+	if clock == null or regrow_at.is_empty() or Engine.get_process_frames() % 120 != 0:
+		return
+	for arr in _columns.values():
+		for n in arr:
+			if n is Node3D and not (n is Creature) and n.has_meta("cell") and regrow_at.has(n.get_meta("cell")):
+				_apply_regrow_state(n)

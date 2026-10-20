@@ -114,9 +114,10 @@ func build(inp: MeshInput) -> Result:
 					if not mp.fluid:
 						for ci in 4:
 							ao[ci] = _vertex_ao(inp, x, y, z, f, corners[ci])
+					var alpha := 1.0 - mp.emissive
 					for ci in 4:
 						var v: Vector3 = base + corners[ci]
-						var c := Color(shade * ao[ci], shade * ao[ci], shade * ao[ci], 1.0)
+						var c := Color(shade * ao[ci], shade * ao[ci], shade * ao[ci], alpha)
 						if mp.transparent:
 							t_verts.append(v)
 							t_norms.append(Vector3(d))

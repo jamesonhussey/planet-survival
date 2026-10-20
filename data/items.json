@@ -1,33 +1,543 @@
 {
   "_doc": "Items. size = [w,h] cells; stack = max per cell group; weight in kg each. Containers have grids [[w,h],...] and a slot (rig|backpack) or none (pouch). Medical items: med = bandage|hemostat|tourniquet|splint|medkit|surgical|painkiller, treats = effects removed, uses, use_time seconds. Blocks: block = material name. known=false items must be examined before their name shows.",
   "items": [
-    {"id": "dirt", "name": "Dirt", "category": "block", "block": "dirt", "size": [1, 1], "weight": 1.6, "stack": 32, "desc": "Loose soil. Airtight when packed, not waterproof."},
-    {"id": "cobble", "name": "Cobblestone", "category": "block", "block": "stone", "size": [1, 1], "weight": 2.7, "stack": 32, "desc": "Broken stone. Heavy, airtight, waterproof, strong."},
-    {"id": "planks", "name": "Planks", "category": "block", "block": "planks", "size": [1, 1], "weight": 0.6, "stack": 32, "desc": "Sawn wood. Light and floats, but leaks air and water and burns."},
-    {"id": "brick", "name": "Clay Brick", "category": "block", "block": "brick", "size": [1, 1], "weight": 2.0, "stack": 32, "desc": "Fired clay. Airtight and waterproof."},
-    {"id": "glass", "name": "Glass Pane", "category": "block", "block": "glass", "size": [1, 1], "weight": 2.5, "stack": 16, "desc": "Airtight and lets light through. Fragile."},
-    {"id": "thatch", "name": "Thatch", "category": "block", "block": "thatch", "size": [1, 1], "weight": 0.2, "stack": 32, "desc": "Bundled grass. Blocks sight, not air. Burns instantly."},
-    {"id": "clay", "name": "Clay", "category": "block", "block": "clay", "size": [1, 1], "weight": 1.9, "stack": 32, "desc": "Wet clay. Airtight and waterproof when packed."},
-    {"id": "sand", "name": "Sand", "category": "block", "block": "sand", "size": [1, 1], "weight": 1.5, "stack": 32, "desc": "Loose sand. Neither airtight nor waterproof."},
-    {"id": "gravel", "name": "Gravel", "category": "block", "block": "gravel", "size": [1, 1], "weight": 1.8, "stack": 32, "desc": "Loose stones. Porous."},
-    {"id": "log", "name": "Log", "category": "block", "block": "log", "size": [1, 2], "weight": 0.8, "stack": 8, "desc": "A section of trunk. Airtight but burns."},
-    {"id": "fiber", "name": "Plant Fiber", "category": "material", "size": [1, 1], "weight": 0.05, "stack": 64, "desc": "Leaves and grass. Crafting material."},
-
-    {"id": "bandage", "name": "Bandage", "unknown_name": "Rolled cloth", "known": false, "category": "medical", "med": "bandage", "treats": ["light_bleed"], "uses": 3, "use_time": 2.0, "size": [1, 1], "weight": 0.05, "desc": "Stops light bleeding. Three wraps."},
-    {"id": "hemostat", "name": "Hemostat", "unknown_name": "Sealed packet", "known": false, "category": "medical", "med": "hemostat", "treats": ["heavy_bleed", "light_bleed"], "uses": 2, "use_time": 4.0, "size": [1, 1], "weight": 0.08, "desc": "Clotting agent. Stops heavy bleeding anywhere."},
-    {"id": "tourniquet", "name": "Tourniquet", "unknown_name": "Strap", "known": false, "category": "medical", "med": "tourniquet", "treats": ["heavy_bleed", "light_bleed"], "uses": 1, "use_time": 3.0, "size": [1, 1], "weight": 0.1, "desc": "Stops heavy bleeding on a limb. Hurts."},
-    {"id": "splint", "name": "Splint", "unknown_name": "Sticks and straps", "known": false, "category": "medical", "med": "splint", "treats": ["fracture"], "uses": 1, "use_time": 5.0, "size": [1, 2], "weight": 0.2, "desc": "Sets a fracture."},
-    {"id": "painkillers", "name": "Painkillers", "unknown_name": "Pill bottle", "known": false, "category": "medical", "med": "painkiller", "uses": 4, "use_time": 2.0, "duration": 180, "size": [1, 1], "weight": 0.05, "desc": "Suppresses pain for three minutes. Does not heal."},
-    {"id": "medkit_small", "name": "Field Medkit", "unknown_name": "Green box", "known": false, "category": "medical", "med": "medkit", "treats": ["light_bleed"], "hp_pool": 120, "heal_per_use": 30, "use_time": 3.0, "size": [1, 2], "weight": 0.4, "desc": "Restores health from a limited pool. Also stops light bleeds."},
-    {"id": "medkit_large", "name": "Trauma Kit", "unknown_name": "Red case", "known": false, "category": "medical", "med": "medkit", "treats": ["light_bleed", "heavy_bleed"], "hp_pool": 300, "heal_per_use": 50, "use_time": 4.0, "size": [2, 2], "weight": 1.1, "desc": "A big pool of healing. Stops any bleed."},
-    {"id": "surgical_kit", "name": "Surgical Kit", "unknown_name": "Steel roll", "known": false, "category": "medical", "med": "surgical", "uses": 2, "use_time": 16.0, "max_hp_penalty": 0.2, "restore_hp": 1, "size": [2, 1], "weight": 0.6, "desc": "Restores a destroyed limb to 1 HP at the cost of 20% of its maximum."},
-
-    {"id": "pouch", "name": "Pouch", "category": "container", "grids": [[2, 2]], "size": [1, 2], "weight": 0.15, "desc": "A small bag. Fits inside a backpack."},
-    {"id": "chest_rig", "name": "Chest Rig", "category": "container", "slot": "rig", "grids": [[2, 2], [2, 2], [1, 2], [1, 2]], "size": [3, 3], "weight": 0.9, "desc": "Four pockets across the chest. Fast to reach."},
-    {"id": "backpack_small", "name": "Day Pack", "category": "container", "slot": "backpack", "grids": [[4, 4]], "size": [3, 4], "weight": 0.8, "desc": "A 4x4 backpack."},
-    {"id": "backpack_large", "name": "Expedition Pack", "category": "container", "slot": "backpack", "grids": [[5, 6], [2, 2]], "size": [4, 5], "weight": 2.2, "desc": "Big main compartment plus a lid pocket."},
-
-    {"id": "breather", "name": "Breather Mask", "unknown_name": "Rubber mask", "known": false, "category": "gear", "size": [2, 2], "weight": 1.2, "filter_seconds": 90, "filter_efficiency": 0.85, "desc": "Scrubs most of the gas from each breath while its filter lasts. Heavy, and the filter is consumable."},
-    {"id": "filter", "name": "Breather Filter", "unknown_name": "Canister", "known": false, "category": "gear", "size": [1, 1], "weight": 0.3, "stack": 4, "filter_seconds": 90, "desc": "A fresh filter for the breather mask."}
+    {
+      "id": "dirt",
+      "name": "Dirt",
+      "category": "block",
+      "block": "dirt",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 1.6,
+      "stack": 32,
+      "desc": "Loose soil. Airtight when packed, not waterproof."
+    },
+    {
+      "id": "cobble",
+      "name": "Cobblestone",
+      "category": "block",
+      "block": "stone",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 2.7,
+      "stack": 32,
+      "desc": "Broken stone. Heavy, airtight, waterproof, strong."
+    },
+    {
+      "id": "planks",
+      "name": "Planks",
+      "category": "block",
+      "block": "planks",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.6,
+      "stack": 32,
+      "desc": "Sawn wood. Light and floats, but leaks air and water and burns."
+    },
+    {
+      "id": "brick",
+      "name": "Clay Brick",
+      "category": "block",
+      "block": "brick",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 2.0,
+      "stack": 32,
+      "desc": "Fired clay. Airtight and waterproof."
+    },
+    {
+      "id": "glass",
+      "name": "Glass Pane",
+      "category": "block",
+      "block": "glass",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 2.5,
+      "stack": 16,
+      "desc": "Airtight and lets light through. Fragile."
+    },
+    {
+      "id": "thatch",
+      "name": "Thatch",
+      "category": "block",
+      "block": "thatch",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.2,
+      "stack": 32,
+      "desc": "Bundled grass. Blocks sight, not air. Burns instantly."
+    },
+    {
+      "id": "clay",
+      "name": "Clay",
+      "category": "block",
+      "block": "clay",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 1.9,
+      "stack": 32,
+      "desc": "Wet clay. Airtight and waterproof when packed."
+    },
+    {
+      "id": "sand",
+      "name": "Sand",
+      "category": "block",
+      "block": "sand",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 1.5,
+      "stack": 32,
+      "desc": "Loose sand. Neither airtight nor waterproof."
+    },
+    {
+      "id": "gravel",
+      "name": "Gravel",
+      "category": "block",
+      "block": "gravel",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 1.8,
+      "stack": 32,
+      "desc": "Loose stones. Porous."
+    },
+    {
+      "id": "log",
+      "name": "Log",
+      "category": "block",
+      "block": "log",
+      "size": [
+        1,
+        2
+      ],
+      "weight": 0.8,
+      "stack": 8,
+      "desc": "A section of trunk. Airtight but burns."
+    },
+    {
+      "id": "fiber",
+      "name": "Plant Fiber",
+      "category": "material",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.05,
+      "stack": 64,
+      "desc": "Leaves and grass. Crafting material."
+    },
+    {
+      "id": "bandage",
+      "name": "Bandage",
+      "unknown_name": "Rolled cloth",
+      "known": false,
+      "category": "medical",
+      "med": "bandage",
+      "treats": [
+        "light_bleed"
+      ],
+      "uses": 3,
+      "use_time": 2.0,
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.05,
+      "desc": "Stops light bleeding. Three wraps."
+    },
+    {
+      "id": "hemostat",
+      "name": "Hemostat",
+      "unknown_name": "Sealed packet",
+      "known": false,
+      "category": "medical",
+      "med": "hemostat",
+      "treats": [
+        "heavy_bleed",
+        "light_bleed"
+      ],
+      "uses": 2,
+      "use_time": 4.0,
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.08,
+      "desc": "Clotting agent. Stops heavy bleeding anywhere."
+    },
+    {
+      "id": "tourniquet",
+      "name": "Tourniquet",
+      "unknown_name": "Strap",
+      "known": false,
+      "category": "medical",
+      "med": "tourniquet",
+      "treats": [
+        "heavy_bleed",
+        "light_bleed"
+      ],
+      "uses": 1,
+      "use_time": 3.0,
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.1,
+      "desc": "Stops heavy bleeding on a limb. Hurts."
+    },
+    {
+      "id": "splint",
+      "name": "Splint",
+      "unknown_name": "Sticks and straps",
+      "known": false,
+      "category": "medical",
+      "med": "splint",
+      "treats": [
+        "fracture"
+      ],
+      "uses": 1,
+      "use_time": 5.0,
+      "size": [
+        1,
+        2
+      ],
+      "weight": 0.2,
+      "desc": "Sets a fracture."
+    },
+    {
+      "id": "painkillers",
+      "name": "Painkillers",
+      "unknown_name": "Pill bottle",
+      "known": false,
+      "category": "medical",
+      "med": "painkiller",
+      "uses": 4,
+      "use_time": 2.0,
+      "duration": 180,
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.05,
+      "desc": "Suppresses pain for three minutes. Does not heal."
+    },
+    {
+      "id": "medkit_small",
+      "name": "Field Medkit",
+      "unknown_name": "Green box",
+      "known": false,
+      "category": "medical",
+      "med": "medkit",
+      "treats": [
+        "light_bleed"
+      ],
+      "hp_pool": 120,
+      "heal_per_use": 30,
+      "use_time": 3.0,
+      "size": [
+        1,
+        2
+      ],
+      "weight": 0.4,
+      "desc": "Restores health from a limited pool. Also stops light bleeds."
+    },
+    {
+      "id": "medkit_large",
+      "name": "Trauma Kit",
+      "unknown_name": "Red case",
+      "known": false,
+      "category": "medical",
+      "med": "medkit",
+      "treats": [
+        "light_bleed",
+        "heavy_bleed"
+      ],
+      "hp_pool": 300,
+      "heal_per_use": 50,
+      "use_time": 4.0,
+      "size": [
+        2,
+        2
+      ],
+      "weight": 1.1,
+      "desc": "A big pool of healing. Stops any bleed."
+    },
+    {
+      "id": "surgical_kit",
+      "name": "Surgical Kit",
+      "unknown_name": "Steel roll",
+      "known": false,
+      "category": "medical",
+      "med": "surgical",
+      "uses": 2,
+      "use_time": 16.0,
+      "max_hp_penalty": 0.2,
+      "restore_hp": 1,
+      "size": [
+        2,
+        1
+      ],
+      "weight": 0.6,
+      "desc": "Restores a destroyed limb to 1 HP at the cost of 20% of its maximum."
+    },
+    {
+      "id": "pouch",
+      "name": "Pouch",
+      "category": "container",
+      "grids": [
+        [
+          2,
+          2
+        ]
+      ],
+      "size": [
+        1,
+        2
+      ],
+      "weight": 0.15,
+      "desc": "A small bag. Fits inside a backpack."
+    },
+    {
+      "id": "chest_rig",
+      "name": "Chest Rig",
+      "category": "container",
+      "slot": "rig",
+      "grids": [
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "size": [
+        3,
+        3
+      ],
+      "weight": 0.9,
+      "desc": "Four pockets across the chest. Fast to reach."
+    },
+    {
+      "id": "backpack_small",
+      "name": "Day Pack",
+      "category": "container",
+      "slot": "backpack",
+      "grids": [
+        [
+          4,
+          4
+        ]
+      ],
+      "size": [
+        3,
+        4
+      ],
+      "weight": 0.8,
+      "desc": "A 4x4 backpack."
+    },
+    {
+      "id": "backpack_large",
+      "name": "Expedition Pack",
+      "category": "container",
+      "slot": "backpack",
+      "grids": [
+        [
+          5,
+          6
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "size": [
+        4,
+        5
+      ],
+      "weight": 2.2,
+      "desc": "Big main compartment plus a lid pocket."
+    },
+    {
+      "id": "breather",
+      "name": "Breather Mask",
+      "unknown_name": "Rubber mask",
+      "known": false,
+      "category": "gear",
+      "size": [
+        2,
+        2
+      ],
+      "weight": 1.2,
+      "filter_seconds": 90,
+      "filter_efficiency": 0.85,
+      "desc": "Scrubs most of the gas from each breath while its filter lasts. Heavy, and the filter is consumable."
+    },
+    {
+      "id": "filter",
+      "name": "Breather Filter",
+      "unknown_name": "Canister",
+      "known": false,
+      "category": "gear",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.3,
+      "stack": 4,
+      "filter_seconds": 90,
+      "desc": "A fresh filter for the breather mask."
+    },
+    {
+      "id": "campfire",
+      "name": "Campfire",
+      "category": "block",
+      "block": "campfire",
+      "size": [
+        2,
+        2
+      ],
+      "weight": 6.0,
+      "stack": 1,
+      "desc": "Place it on the ground. Light, warmth, cooking. Burns anything flammable next to it."
+    },
+    {
+      "id": "rope",
+      "name": "Rope",
+      "category": "material",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.2,
+      "stack": 16,
+      "desc": "Twisted fiber."
+    },
+    {
+      "id": "charcoal",
+      "name": "Charcoal",
+      "category": "material",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.15,
+      "stack": 32,
+      "desc": "Black, light, absorbent."
+    },
+    {
+      "id": "berries",
+      "name": "Marsh Berries",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.1,
+      "stack": 16,
+      "use_time": 1.5,
+      "food": {
+        "hunger": 0.08,
+        "thirst": 0.04
+      },
+      "spoil_hours": 30,
+      "desc": "Sour, but they keep you going."
+    },
+    {
+      "id": "meat_raw",
+      "name": "Raw Meat",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.6,
+      "stack": 4,
+      "use_time": 3.0,
+      "food": {
+        "hunger": 0.15,
+        "poison_chance": 0.35
+      },
+      "spoil_hours": 10,
+      "desc": "Grazer meat. Cook it unless you like being sick."
+    },
+    {
+      "id": "meat_cooked",
+      "name": "Cooked Meat",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.5,
+      "stack": 4,
+      "use_time": 3.0,
+      "food": {
+        "hunger": 0.4,
+        "temperature": 0.4
+      },
+      "spoil_hours": 30,
+      "desc": "Hot and filling."
+    },
+    {
+      "id": "spoiled_food",
+      "name": "Spoiled Food",
+      "category": "food",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.3,
+      "stack": 8,
+      "use_time": 2.0,
+      "food": {
+        "hunger": 0.05,
+        "poison_chance": 0.8
+      },
+      "desc": "Grey and sweet-smelling. Desperation only."
+    },
+    {
+      "id": "canteen",
+      "name": "Clay Canteen",
+      "category": "food",
+      "size": [
+        1,
+        2
+      ],
+      "weight": 0.5,
+      "uses": 8,
+      "use_time": 1.5,
+      "food": {
+        "thirst": 0.3
+      },
+      "refillable": true,
+      "desc": "Eight drinks. Refill at any water with E."
+    }
   ]
 }

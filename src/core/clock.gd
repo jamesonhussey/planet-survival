@@ -45,6 +45,25 @@ func seconds_per_hour() -> float:
 	return minutes_per_day * 60.0 / 24.0 / maxf(time_scale, 0.0001)
 
 
+## Game seconds that pass per (time-scaled) real second.
+func game_seconds_per_second() -> float:
+	return 86400.0 / (minutes_per_day * 60.0)
+
+
+## Sun elevation in degrees: -90 at midnight, +90 at noon (sunrise 06:00).
+func sun_elevation() -> float:
+	return sin((day_fraction - 0.25) * TAU) * 90.0
+
+
+## 0 at full night, 1 at full day, smooth around dawn/dusk.
+func daylight() -> float:
+	return clampf(smoothstep(-12.0, 10.0, sun_elevation()), 0.0, 1.0)
+
+
+func is_night() -> bool:
+	return sun_elevation() < -6.0
+
+
 func clock_text() -> String:
 	var h := hour()
 	var m := int(fmod(day_fraction * 24.0, 1.0) * 60.0)

@@ -15,7 +15,10 @@
     "sun_energy": 1.0,
     "sun_elevation_degrees": 48,
     "fog_start": 10.0,
-    "fog_end": 64.0
+    "fog_end": 64.0,
+    "temp_day": 23,
+    "temp_night": 9,
+    "night_darkness": 0.85
   },
   "clock": {
     "minutes_per_day": 15,
@@ -48,7 +51,10 @@
     "oxygen_seconds": 40,
     "oxygen_recover_seconds": 8,
     "suffocation_dps": 7.0,
-    "gas_threshold": 0.22
+    "gas_threshold": 0.22,
+    "hunger_hours": 36,
+    "thirst_hours": 20,
+    "comfort_temp": 20
   },
   "hazards": [
     {
@@ -167,7 +173,23 @@
       },
       "on": [
         "grass"
-      ]
+      ],
+      "harvest": {
+        "id": "log",
+        "count": [
+          3,
+          5
+        ],
+        "time": 4.0,
+        "extra": {
+          "id": "fiber",
+          "count": [
+            2,
+            5
+          ]
+        },
+        "remove": true
+      }
     },
     {
       "generator": "lantern",
@@ -193,7 +215,42 @@
       "on": [
         "grass"
       ],
-      "creature": true
+      "creature": true,
+      "drops": [
+        {
+          "id": "meat_raw",
+          "count": [
+            1,
+            2
+          ]
+        },
+        {
+          "id": "fiber",
+          "count": [
+            0,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "generator": "berry_bush",
+      "per_chunk": 0.5,
+      "params": {
+        "ramp": "leaf"
+      },
+      "on": [
+        "grass"
+      ],
+      "harvest": {
+        "id": "berries",
+        "count": [
+          2,
+          4
+        ],
+        "time": 1.5,
+        "regrow_hours": 24
+      }
     }
   ],
   "starting_kit": [
@@ -245,6 +302,15 @@
     },
     {
       "id": "filter"
+    },
+    {
+      "id": "canteen",
+      "examined": true
+    },
+    {
+      "id": "berries",
+      "count": 4,
+      "examined": true
     }
   ]
 }

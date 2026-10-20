@@ -18,6 +18,10 @@ var anim_t: float = 0.0
 var rng := RandomNumberGenerator.new()
 var kind: String = "grazer"
 var _dead_tilt: float = 0.0
+var flee_timer: float = 0.0
+var drops: Array = []   # [{"id": ..., "count": [min,max]}] from planet data
+
+signal died(creature: Creature, cause: String)
 
 
 func setup(rig: PartRig, material: Material, seed: int, creature_kind: String = "grazer") -> void:
@@ -49,12 +53,29 @@ func breathe(gas: float, dt: float) -> void:
 		die("suffocation")
 
 
-func die(_cause: String) -> void:
+## Take a hit (the player's hands or a tool). Returns true if it died.
+func hit(amount: float, from: Vector3, cause: String = "blunt") -> bool:
+	if dead:
+		return false
+	vitals.damage(amount, cause)
+	flee_timer = 6.0
+	moving = true
+	var away := (global_position - from)
+	away.y = 0.0
+	wander_dir = away.normalized() if away.length() > 0.01 else Vector3(1, 0, 0)
+	if not vitals.alive:
+		die(cause)
+		return true
+	return false
+
+
+func die(cause: String) -> void:
 	if dead:
 		return
 	dead = true
 	moving = false
 	velocity = Vector3.ZERO
+	died.emit(self, cause)
 	# Grey the fur so the corpse reads at a distance.
 	for n in parts.values():
 		var mi := (n as Node3D).get_node_or_null("Mesh") as MeshInstance3D
@@ -85,10 +106,13 @@ func _physics_process(delta: float) -> void:
 		if moving:
 			var a := rng.randf() * TAU
 			wander_dir = Vector3(cos(a), 0, sin(a))
-	# Flee uphill when the air goes bad: pick the higher neighbouring direction.
+	if flee_timer > 0.0:
+		flee_timer -= delta
+		moving = true
 	if vitals.suffocating:
 		moving = true
-	var target := wander_dir * speed * (1.8 if vitals.suffocating else 1.0) if moving else Vector3.ZERO
+	var fast := vitals.suffocating or flee_timer > 0.0
+	var target := wander_dir * speed * (2.2 if fast else 1.0) if moving else Vector3.ZERO
 	velocity.x = move_toward(velocity.x, target.x, 6.0 * delta)
 	velocity.z = move_toward(velocity.z, target.z, 6.0 * delta)
 	if moving and wander_dir.length_squared() > 0.0:

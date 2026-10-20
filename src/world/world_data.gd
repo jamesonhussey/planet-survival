@@ -13,6 +13,8 @@ var world_height: int = 128       # blocks; must be a multiple of 16
 var chunks: Dictionary = {}       # Vector3i -> Chunk
 var generator: ChunkGenerator = null
 var props: Array[MaterialProps] = []   # indexed by block id
+## Edited chunks from a save file, applied the moment a chunk is produced.
+var saved_chunks: Dictionary = {}      # Vector3i -> PackedByteArray
 var _half: int = 512
 var _cy_max: int = 7
 
@@ -82,6 +84,7 @@ func get_or_generate_chunk(cpos: Vector3i) -> Chunk:
 	if not chunk_in_bounds(cpos) or generator == null:
 		return null
 	c = generator.generate(cpos)
+	_apply_saved(c)
 	chunks[cpos] = c
 	return c
 
@@ -91,8 +94,21 @@ func get_or_generate_chunk(cpos: Vector3i) -> Chunk:
 func insert_chunk(c: Chunk) -> bool:
 	if chunks.has(c.cpos):
 		return false
+	_apply_saved(c)
 	chunks[c.cpos] = c
 	return true
+
+
+func _apply_saved(c: Chunk) -> void:
+	if saved_chunks.is_empty() or not saved_chunks.has(c.cpos):
+		return
+	var blocks: PackedByteArray = saved_chunks[c.cpos]
+	if blocks.size() == Chunk.VOLUME:
+		c.blocks = blocks.duplicate()
+		c.recount()
+		c.edited = true
+		c.dirty = true
+	saved_chunks.erase(c.cpos)
 
 
 func unload_chunk(cpos: Vector3i) -> void:

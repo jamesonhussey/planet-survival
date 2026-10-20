@@ -12,7 +12,9 @@ Godot 4 survival game: pick one of four planets, learn its deadly physical rule,
 
 | What | Windows (PowerShell) | Linux/macOS |
 |---|---|---|
-| Play | `.\tools\godot.ps1 --path .` | `tools/godot.sh --path .` |
+| Play (orbit screen) | `.\tools\godot.ps1 --path .` | `tools/godot.sh --path .` |
+| Continue the save slot | `.\tools\godot.ps1 --path . -- --continue` | same |
+| Export builds | `.\tools\build.ps1 [windows\|linux\|all]` (templates via the editor once) | `tools/build.sh [windows\|linux\|all]` (downloads templates on first use) |
 | Play a planet directly | `.\tools\godot.ps1 --path . -- --planet=04 --seed=42` | same args |
 | Unit tests | `.\tools\test.ps1 [--filter=gas]` | `tools/test.sh [--filter=gas]` |
 | Smoke boot (headless, fails on script errors) | `.\tools\godot.ps1 --headless --path . -- --smoke --planet=04 --frames=240` | `tools/smoke.sh 04` |
@@ -21,9 +23,9 @@ Godot 4 survival game: pick one of four planets, learn its deadly physical rule,
 | Dump the official class reference for the pinned version | `.\tools\godot.ps1 --headless --doctool docs\godot-classes --no-docbase` | `tools/docs.sh` |
 | Open the editor | `.\tools\godot.ps1 --path . -e` | `tools/godot.sh --path . -e` |
 
-Command-line user args (after `--`): `--planet=ID`, `--mode=short|standard|long_haul`, `--seed=N`, `--smoke`, `--screenshot`, `--frames=N`, `--trigger`, `--timescale=N`, `--eye=dx,dy,dz --yaw=r --pitch=r` (debug fly camera offset from spawn).
+Command-line user args (after `--`): `--planet=ID`, `--mode=short|standard|long_haul`, `--seed=N`, `--continue`, `--menu`, `--smoke`, `--screenshot`, `--frames=N`, `--trigger`, `--timescale=N`, `--hour=H` (start time of day), `--campfire` (place a lit campfire by spawn), `--savetest` (save at frame 30; run again with `--continue` to verify), `--eye=dx,dy,dz --yaw=r --pitch=r` (debug fly camera offset from spawn).
 
-In-game keys: WASD move, Space jump, Shift sprint, Ctrl crouch, LMB dig, RMB place the block in the selected quick slot, 1–6 / wheel select quick slot, Q use the selected item (med → auto-picks the worst part; breather → toggle), E take a nearby pickup, Tab inventory, H health screen, F flashlight, Esc release mouse / close screens, R restart after death. In the inventory: click an item to hold it, click a cell to put it there, R rotates while holding, right-click for Examine/Use/Equip/Open/Split/Drop, 1–6 while hovering assigns a quick slot, G drops. Debug: F3 overlay, F5 trigger hazard, F6 time ×20, F7 fly, F8 reload `data/render_settings.json`.
+In-game keys: WASD move, Space jump, Shift sprint (drains stamina), Ctrl crouch, LMB dig or hit a creature, RMB place the block in the selected quick slot, 1–6 / wheel select quick slot, Q use the selected item (med → auto-picks the worst part; food → eat/drink; breather → toggle), E take a pickup / harvest a tree or bush / drink from water (refills canteens), Tab inventory, H health screen, C crafting, F flashlight, Esc pause menu (resume, save and return to orbit, quit) or close screens, R restart after death. In the inventory: click an item to hold it, click a cell to put it there, R rotates while holding, right-click for Examine/Use/Equip/Open/Split/Drop, 1–6 while hovering assigns a quick slot, G drops. Debug: F3 overlay, F5 trigger hazard, F6 time ×20, F7 fly, F8 reload `data/render_settings.json`.
 
 Screenshot/smoke args for the screens: `--ui=inventory`, `--ui=health --hurt` (pre-damages the body).
 
@@ -32,21 +34,21 @@ Screenshot/smoke args for the screens: `--ui=inventory`, `--ui=health --hurt` (p
 ## Architecture map
 
 ```
-src/core      Game (autoload: boot/args/state), Run (one survival run, builds everything), GameClock, EventBus, InputSetup
+src/core      Game (autoload: boot/args/state, orbit screen, save slot), Run (one survival run, builds everything, save/load, day/night, interactions), GameClock (day fraction, sun elevation), EventBus, InputSetup, SaveSystem (user://saves, edited chunks only)
 src/data      DataRegistry (autoload "Data": loads + validates data/*.json), MaterialProps
 src/net       Session (always a server; solo = local host), WorldCommands (validated dig/place, drops into / consumes from the player's kit; RPC transport lands in M4)
 src/items     ItemInstance (stack, rotation, examined, uses/pool, nested grids), Equipment (pockets, rig, backpack, quick slots)
 src/world     WorldData (chunk dict, bounds clamp, world_size 0 = infinite), Chunk, ChunkGenerator (seeded, deterministic),
               ChunkMesher (face culling + AO, worker threads), ChunkStreamer (load/unload around focus), BlockTextureGen, VoxelRay, PropSpawner
-src/sim       Pure logic, no nodes, unit tested: GasSim, Vitals, InventoryGrid, BodyHealth (more sims land per milestone)
+src/sim       Pure logic, no nodes, unit tested: GasSim, Vitals (oxygen, hunger, thirst, temperature, stamina), InventoryGrid, BodyHealth, Crafting
 src/hazards   HazardModule (IDLE→WARNING→ACTIVE→RECOVERY), HazardDirector (schedule + escalation), HeavyGasHazard, Telegraph, GasRenderer
 src/render    PS1Pipeline (low-res SubViewport + post shader), MaterialFactory, shaders/ (terrain, voxel_model, post, ps1_common)
 src/voxel_art VoxelModel, VoxelMesher (greedy), PartRig (rigid parts), VoxelArt (generator registry + cache), generators/
 src/player    PlayerController (first person, camera shake, dig/place through Session), PlayerKit (equipment + body + timed med/examine actions + breather)
 src/entities  Creature (part-rig animation, wander brain, breathes), ItemPickup
-src/ui        PixelFont (+glyph data), HUD, GridView, InventoryUI, HealthScreen
+src/ui        PixelFont (+glyph data), HUD, GridView, InventoryUI, HealthScreen, CraftingUI, PauseMenu, PlanetSelect (+PlanetSprite)
 src/audio     SoundBank (synthesised AudioStreamWAV)
-data/         materials.json, items.json (blocks, meds, containers, gear), palettes.json, planets/*.json (incl. starting_kit), render_settings.json, modes.json
+data/         materials.json (incl. campfire: emissive/light/heat/station), items.json (blocks, meds, containers, gear, food), recipes.json, palettes.json, planets/*.json (starting_kit, temperatures, harvestable props, creature drops), render_settings.json, modes.json
 tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 ```
 
@@ -76,3 +78,6 @@ tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 - `Dictionary.merge()` does not overwrite existing keys unless you pass `true`.
 - Mouse events pushed into the low-res SubViewport must be remapped with `PS1Pipeline.screen_to_view_transform()` or GUI hit-testing is off.
 - The test runner calls `Data.load_all()` itself; autoloads exist in `-s` runs but `Game.boot()` never runs there.
+- `tools/test.sh` fails on any `SCRIPT ERROR` in the output: a runtime error inside a test aborts that method silently otherwise.
+- Survival rates are per *game hour* (`*_hp_per_hour`); the run converts with `GameClock.game_seconds_per_second()`. Mixing real and game seconds killed the player in 3 minutes once.
+- `FileAccess.get_32()` is unsigned: recover the sign of saved negative chunk coordinates (see `SaveSystem.read_chunks`).

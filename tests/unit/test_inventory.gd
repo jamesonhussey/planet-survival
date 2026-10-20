@@ -116,3 +116,31 @@ func test_examine_and_split() -> void:
 	assert_eq(stack.count, 6)
 	assert_eq(half.count, 4)
 	assert_null(stack.split(6), "cannot split everything")
+
+
+func test_kit_round_trip_and_spoilage() -> void:
+	var kit := PlayerKit.new(3, Data)
+	kit.give_starting_kit([{"id": "chest_rig"}, {"id": "backpack_small"}, {"id": "planks", "count": 7}, {"id": "bandage"}, {"id": "berries", "count": 3, "examined": true}], Data)
+	kit.body.damage("left_leg", 20.0)
+	kit.vitals.hunger = 0.4
+	kit.equipment.set_quick(2, kit.equipment.find_first(func(it: ItemInstance) -> bool: return it.id == "planks"))
+	var d := kit.to_dict()
+	var copy := PlayerKit.new(4, Data)
+	copy.from_dict(d, Data)
+	assert_eq(copy.equipment.count_of("planks"), 7)
+	assert_eq(copy.equipment.count_of("berries"), 3)
+	assert_not_null(copy.equipment.rig)
+	assert_not_null(copy.equipment.backpack)
+	assert_near(copy.body.hp["left_leg"], 45.0)
+	assert_near(copy.vitals.hunger, 0.4)
+	assert_eq(copy.equipment.quick_item(2).id, "planks", "quick slot survives the round trip")
+	# Spoilage: berries last 30 game hours.
+	kit.tick(0.0, 31.0 * 3600.0)
+	assert_eq(kit.equipment.count_of("berries"), 0)
+	assert_eq(kit.equipment.count_of("spoiled_food"), 3)
+	# Eating.
+	var food := kit.equipment.find_first(func(it: ItemInstance) -> bool: return it.id == "spoiled_food")
+	assert_true(kit.start_eat(food)["ok"])
+	kit.tick(5.0)
+	assert_gt(kit.vitals.hunger, 0.4)
+	assert_eq(kit.equipment.count_of("spoiled_food"), 2)

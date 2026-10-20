@@ -14,6 +14,7 @@ const ACTIONS := {
 	"interact": [KEY_E],
 	"inventory": [KEY_TAB],
 	"health_screen": [KEY_H],
+	"crafting": [KEY_C],
 	"flashlight": [KEY_F],
 	"hotbar_next": [KEY_BRACKETRIGHT],
 	"hotbar_prev": [KEY_BRACKETLEFT],

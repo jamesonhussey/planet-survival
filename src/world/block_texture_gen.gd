@@ -57,6 +57,12 @@ func build(materials: Array[MaterialProps], seed: int = 1) -> BlockTextureGen:
 			"leaves":
 				tiles.append(_leaves(base, variance, rng))
 				_all_faces(m.id, tiles.size() - 1)
+			"fire":
+				tiles.append(_fire(base, rng))
+				tile_of[m.id * 3 + 0] = tiles.size() - 1
+				tiles.append(_speckle(Color("#4a4440"), 0.2, rng))
+				tile_of[m.id * 3 + 1] = tiles.size() - 1
+				tile_of[m.id * 3 + 2] = tiles.size() - 1
 			_:
 				tiles.append(_noise(base, variance, rng))
 				_all_faces(m.id, tiles.size() - 1)
@@ -187,6 +193,18 @@ static func _water(base: Color, variance: float, rng: RandomNumberGenerator) -> 
 			if (x + y * 3) % 9 == 0:
 				c = c.lightened(0.25)
 			c.a = 0.78
+			img.set_pixel(x, y, c)
+	return img
+
+
+static func _fire(base: Color, rng: RandomNumberGenerator) -> Image:
+	var img := Image.create_empty(TILE, TILE, false, Image.FORMAT_RGBA8)
+	for y in TILE:
+		for x in TILE:
+			var d := Vector2(x + 0.5 - TILE * 0.5, y + 0.5 - TILE * 0.5).length() / (TILE * 0.5)
+			var c := base.lightened(0.5 * (1.0 - d)) if d < 0.75 else Color("#3a2a20")
+			if d < 0.75 and rng.randf() < 0.25:
+				c = Color("#ffe27a")
 			img.set_pixel(x, y, c)
 	return img
 

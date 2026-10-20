@@ -15,6 +15,7 @@ var examined: bool = false
 var uses_left: int = 0
 var hp_pool: float = 0.0
 var durability: float = 1.0
+var freshness_hours: float = -1.0   # food: game hours until spoiled (-1 = not started)
 var grids: Array = []            # Array[InventoryGrid] for containers
 ## Grid this item sits in (weak back-reference; the grid owns the item).
 var parent_grid: InventoryGrid:
@@ -126,7 +127,7 @@ func contents(recursive: bool = true) -> Array:
 
 
 func to_dict() -> Dictionary:
-	var d := {"id": id, "count": count, "rotated": rotated, "examined": examined, "uses_left": uses_left, "hp_pool": hp_pool, "durability": durability}
+	var d := {"id": id, "uid": uid, "count": count, "rotated": rotated, "examined": examined, "uses_left": uses_left, "hp_pool": hp_pool, "durability": durability, "freshness_hours": freshness_hours}
 	if is_container():
 		var gs: Array = []
 		for g in grids:

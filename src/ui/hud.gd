@@ -26,6 +26,11 @@ var action_bg: ColorRect
 var action_fill: ColorRect
 var action_label: Label
 var status_label: Label
+var hunger_fill: ColorRect
+var thirst_fill: ColorRect
+var temp_fill: ColorRect
+var stamina_fill: ColorRect
+var temp_label: Label
 
 var _toasts: Array = []  # [label, time_left]
 var debug_provider: Callable = Callable()
@@ -54,6 +59,16 @@ func _ready() -> void:
 	hp_fill = hp_bar.get_child(0)
 	_label(root, Vector2(80, 244), "O2")
 	_label(root, Vector2(80, 254), "HP")
+	# Survival needs: right side, stacked.
+	var x0 := 390.0
+	hunger_fill = _bar(root, Vector2(x0, 190), Color(0.85, 0.6, 0.2)).get_child(0)
+	thirst_fill = _bar(root, Vector2(x0, 200), Color(0.3, 0.55, 0.95)).get_child(0)
+	temp_fill = _bar(root, Vector2(x0, 210), Color(0.9, 0.9, 0.9)).get_child(0)
+	stamina_fill = _bar(root, Vector2(x0, 220), Color(0.5, 0.85, 0.4)).get_child(0)
+	for pair in [[190, "FOOD"], [200, "WATER"], [210, "TEMP"], [220, "STAM"]]:
+		var l := _label(root, Vector2(x0 - 34, float(pair[0]) - 2.0), str(pair[1]))
+		l.modulate = Color(0.8, 0.8, 0.8)
+	temp_label = _label(root, Vector2(x0 + 72, 208), "37")
 
 	quick_row = HBoxContainer.new()
 	quick_row.position = Vector2(112, 246)
@@ -239,6 +254,13 @@ func _on_vitals(v: Dictionary) -> void:
 	oxygen_fill.size.x = 68.0 * clampf(float(v.get("oxygen", 1.0)), 0.0, 1.0)
 	hp_fill.size.x = 68.0 * clampf(float(v.get("hp", 100.0)) / maxf(float(v.get("max_hp", 100.0)), 1.0), 0.0, 1.0)
 	oxygen_fill.color = Color(0.95, 0.3, 0.2) if bool(v.get("suffocating", false)) else Color(0.25, 0.75, 0.95)
+	hunger_fill.size.x = 68.0 * clampf(float(v.get("hunger", 1.0)), 0.0, 1.0)
+	thirst_fill.size.x = 68.0 * clampf(float(v.get("thirst", 1.0)), 0.0, 1.0)
+	stamina_fill.size.x = 68.0 * clampf(float(v.get("stamina", 1.0)), 0.0, 1.0)
+	var t := float(v.get("temperature", 37.0))
+	temp_fill.size.x = 68.0 * clampf((t - 30.0) / 12.0, 0.0, 1.0)
+	temp_fill.color = Color(0.4, 0.6, 1.0) if bool(v.get("cold", false)) else (Color(1.0, 0.45, 0.2) if bool(v.get("hot", false)) else Color(0.9, 0.9, 0.9))
+	temp_label.text = "%.0f" % t
 	var kind := str(v.get("action_kind", ""))
 	action_bg.visible = kind != ""
 	if kind != "":
@@ -255,6 +277,16 @@ func _on_vitals(v: Dictionary) -> void:
 		bits.append("FRACTURE")
 	if bool(v.get("breather", false)):
 		bits.append("MASK %ds" % int(v.get("filter", 0.0)))
+	if bool(v.get("starving", false)):
+		bits.append("STARVING")
+	if bool(v.get("dehydrated", false)):
+		bits.append("DEHYDRATED")
+	if bool(v.get("cold", false)):
+		bits.append("COLD")
+	if bool(v.get("hot", false)):
+		bits.append("OVERHEATING")
+	if bool(v.get("poisoned", false)):
+		bits.append("POISONED")
 	status_label.text = "  ".join(bits)
 
 
@@ -271,7 +303,7 @@ func _on_hazard_phase(_id: String, phase: int, _intensity: float) -> void:
 func _on_run_ended(won: bool, day: int) -> void:
 	end_overlay.visible = true
 	end_title.text = "YOU MADE IT" if won else "YOU DIED"
-	end_body.text = ("Survived %d days." % day) if won else ("Day %d. Press R to try again." % day)
+	end_body.text = ("Survived %d days.  Esc returns to orbit." % day) if won else ("Day %d.  R: try again   Esc: back to orbit" % day)
 	warning_label.text = ""
 
 

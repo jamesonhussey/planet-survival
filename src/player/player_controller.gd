@@ -39,6 +39,12 @@ var _shake_total: float = 1.0
 var _was_on_floor: bool = true
 
 signal aim_changed(hit: VoxelRay.Hit)
+signal attack_requested(target: Node)
+## Physics hit in front of the camera this frame: {"collider": Object, "position": Vector3, "distance": float} or {}.
+var interact_hit: Dictionary = {}
+var sprint_allowed: bool = true
+var sprinting: bool = false
+var _attack_cooldown: float = 0.0
 signal hotbar_changed(index: int)
 signal landed(impact_speed: float)
 signal use_requested(item: ItemInstance)
@@ -166,8 +172,10 @@ func _physics_process(delta: float) -> void:
 		_was_on_floor = true
 	else:
 		var speed := WALK_SPEED
-		if input_enabled and Input.is_action_pressed("sprint"):
+		sprinting = false
+		if input_enabled and Input.is_action_pressed("sprint") and sprint_allowed and input_dir.length_squared() > 0.0:
 			speed = SPRINT_SPEED
+			sprinting = true
 		elif input_enabled and Input.is_action_pressed("crouch"):
 			speed = CROUCH_SPEED
 		speed *= speed_multiplier
@@ -189,8 +197,14 @@ func _physics_process(delta: float) -> void:
 			global_position.y = float(world.world_height) if world != null else 80.0
 			velocity = Vector3.ZERO
 	_update_aim()
+	_update_interact_hit()
+	_attack_cooldown = maxf(0.0, _attack_cooldown - delta)
 	if input_enabled:
-		if Input.is_action_pressed("dig") and _dig_cooldown <= 0.0 and _aim.hit:
+		var creature_in_front: bool = not interact_hit.is_empty() and interact_hit["collider"] is Creature and (not _aim.hit or float(interact_hit["distance"]) < _aim.distance)
+		if Input.is_action_pressed("dig") and creature_in_front and _attack_cooldown <= 0.0:
+			_attack_cooldown = 0.5
+			attack_requested.emit(interact_hit["collider"])
+		elif Input.is_action_pressed("dig") and _dig_cooldown <= 0.0 and _aim.hit and not creature_in_front:
 			_dig_cooldown = 0.22
 			session.submit({"type": "dig", "pos": _aim.pos, "from": camera.global_position})
 		if Input.is_action_pressed("place") and _place_cooldown <= 0.0 and _aim.hit and selected_block() > 0:
@@ -206,6 +220,26 @@ func _update_aim() -> void:
 	var dir := -camera.global_transform.basis.z
 	_aim = VoxelRay.cast(origin, dir, WorldCommands.REACH, func(c: Vector3i) -> bool: return world.is_solid(c))
 	aim_changed.emit(_aim)
+
+
+## Raycast against creatures (layer 4) and prop bodies (layers 1, 8).
+func _update_interact_hit() -> void:
+	interact_hit = {}
+	if camera == null or not is_inside_tree():
+		return
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return
+	var from := camera.global_position
+	var to := from + (-camera.global_transform.basis.z) * 4.5
+	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 4 | 8, [get_rid()])
+	var r := space.intersect_ray(q)
+	if r.is_empty():
+		return
+	var collider: Object = r["collider"]
+	# Terrain chunks are StaticBodies without metadata; ignore them.
+	if collider is Creature or (collider is Node and (collider as Node).has_meta("prop_node")):
+		interact_hit = {"collider": collider, "position": r["position"], "distance": from.distance_to(r["position"])}
 
 
 func _cell_overlaps_body(cell: Vector3i) -> bool:
