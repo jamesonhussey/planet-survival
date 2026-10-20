@@ -14,6 +14,9 @@ Godot 4 survival game: pick one of four planets, learn its deadly physical rule,
 |---|---|---|
 | Play (orbit screen) | `.\tools\godot.ps1 --path .` | `tools/godot.sh --path .` |
 | Continue the save slot | `.\tools\godot.ps1 --path . -- --continue` | same |
+| Co-op: host | `.\tools\godot.ps1 --path . -- --host --planet=04 --name=Jam` (or the HOST button in orbit) | same |
+| Co-op: join | `.\tools\godot.ps1 --path . -- --join=192.168.1.10 --name=Pat` (or JOIN in orbit) | same |
+| Co-op smoke test (host + client on localhost) | n/a | `tools/nettest.sh` |
 | Export builds | `.\tools\build.ps1 [windows\|linux\|all]` (templates via the editor once) | `tools/build.sh [windows\|linux\|all]` (downloads templates on first use) |
 | Play a planet directly | `.\tools\godot.ps1 --path . -- --planet=04 --seed=42` | same args |
 | Unit tests | `.\tools\test.ps1 [--filter=gas]` | `tools/test.sh [--filter=gas]` |
@@ -36,16 +39,16 @@ Screenshot/smoke args for the screens: `--ui=inventory`, `--ui=health --hurt` (p
 ```
 src/core      Game (autoload: boot/args/state, orbit screen, save slot), Run (one survival run, builds everything, save/load, day/night, interactions), GameClock (day fraction, sun elevation), EventBus, InputSetup, SaveSystem (user://saves, edited chunks only)
 src/data      DataRegistry (autoload "Data": loads + validates data/*.json), MaterialProps
-src/net       Session (always a server; solo = local host), WorldCommands (validated dig/place, drops into / consumes from the player's kit; RPC transport lands in M4)
+src/net       Net (autoload: ENet host/join + hello/welcome handshake), Session (authority boundary; solo = local host), WorldCommands (validated dig/place), Replicator (every in-run RPC: blocks, grants, hazard phases, packed gas cells, clock, peer states, creatures, pickups, harvests, rituals)
 src/items     ItemInstance (stack, rotation, examined, uses/pool, nested grids), Equipment (pockets, rig, backpack, quick slots)
 src/world     WorldData (chunk dict, bounds clamp, world_size 0 = infinite), Chunk, ChunkGenerator (seeded, deterministic),
               ChunkMesher (face culling + AO, worker threads), ChunkStreamer (load/unload around focus), BlockTextureGen, VoxelRay, PropSpawner
-src/sim       Pure logic, no nodes, unit tested: GasSim, Vitals (oxygen, hunger, thirst, temperature, stamina), InventoryGrid, BodyHealth, Crafting
+src/sim       Pure logic, no nodes, unit tested: GasSim, Vitals (oxygen, hunger, thirst, temperature, stamina), InventoryGrid, BodyHealth, Crafting, Ritual
 src/hazards   HazardModule (IDLE→WARNING→ACTIVE→RECOVERY), HazardDirector (schedule + escalation), HeavyGasHazard, Telegraph, GasRenderer
 src/render    PS1Pipeline (low-res SubViewport + post shader), MaterialFactory, shaders/ (terrain, voxel_model, post, ps1_common)
 src/voxel_art VoxelModel, VoxelMesher (greedy), PartRig (rigid parts), VoxelArt (generator registry + cache), generators/
 src/player    PlayerController (first person, camera shake, dig/place through Session), PlayerKit (equipment + body + timed med/examine actions + breather)
-src/entities  Creature (part-rig animation, wander brain, breathes), ItemPickup
+src/entities  Creature (part-rig animation, wander brain, breathes; `remote` mirrors on clients), ItemPickup, RemotePlayer (humanoid avatar, ghost look)
 src/ui        PixelFont (+glyph data), HUD, GridView, InventoryUI, HealthScreen, CraftingUI, PauseMenu, PlanetSelect (+PlanetSprite)
 src/audio     SoundBank (synthesised AudioStreamWAV)
 data/         materials.json (incl. campfire: emissive/light/heat/station), items.json (blocks, meds, containers, gear, food), recipes.json, palettes.json, planets/*.json (starting_kit, temperatures, harvestable props, creature drops), render_settings.json, modes.json
@@ -58,7 +61,7 @@ tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 2. **Data-driven.** Items, materials, recipes, planets, hazards, enemies, trades live in `data/`. Add content there, not in code. `DataRegistry` validates on boot and the smoke test fails on validation errors.
 3. **Rules, not puzzles.** Hazards only read material properties (`waterproof`, `airtight`, `opacity`, `heat_resistance`, `flammability`, `strength`, `buoyancy`, `weight`). Never special-case a material id in a hazard, and never add an item whose only purpose is to beat one hazard.
 4. **Always telegraph.** Every hazard config must have `warning_time > 0` and warning cues; validation enforces the former.
-5. **Server authority.** World mutations go through `Session.submit()` → `WorldCommands`. Sims and AI run only where `Session.is_server()`.
+5. **Server authority.** World mutations go through `Session.submit()` → `WorldCommands`. Sims, hazards, creatures, pickups and rituals run only where `Session.is_server()`; clients mirror them through `Replicator` RPCs. Inventory, health and movement are client-owned (friendly co-op), the server grants dug items and trusts placement. Every new networked feature adds an RPC pair to `Replicator`, never ad-hoc RPCs elsewhere; `Net` and `Run/Replicator` must exist at identical paths on all peers.
 6. **Pure sims.** Anything in `src/sim/` is a `RefCounted` with no node dependencies so it runs in unit tests and (later) on worker threads.
 7. **Procedural art.** Models come from `src/voxel_art/generators/*.gd` (`generate(params, rng, ctx) -> PartRig`), textures from `BlockTextureGen`, fonts from `PixelFont`, sounds from `SoundBank`. Seeded RNG everywhere; same seed = same result.
 8. **Tests for logic.** New sim/inventory/health logic ships with `tests/unit/test_*.gd` (extend `TestCase`, methods named `test_*`).
@@ -81,3 +84,5 @@ tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 - `tools/test.sh` fails on any `SCRIPT ERROR` in the output: a runtime error inside a test aborts that method silently otherwise.
 - Survival rates are per *game hour* (`*_hp_per_hour`); the run converts with `GameClock.game_seconds_per_second()`. Mixing real and game seconds killed the player in 3 minutes once.
 - `FileAccess.get_32()` is unsigned: recover the sign of saved negative chunk coordinates (see `SaveSystem.read_chunks`).
+- Headless smoke runs are unthrottled; co-op tests pass `--fps=60` so host and client timelines line up, and the smoke frame budget is reset when the run starts (menus and connecting don't count).
+- A RefCounted lambda stored on another RefCounted it references (e.g. `vitals.damage_sink = func(): body...`) leaks; use a method callable.

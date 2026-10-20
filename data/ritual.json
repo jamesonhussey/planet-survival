@@ -1,0 +1,13 @@
+{
+  "_doc": "Revival Ritual tuning (co-op). Same on every planet.",
+  "fire_range_blocks": 3,
+  "night_fraction_of_day": 0.4,
+  "nights_needed_base": 1.0,
+  "nights_per_previous_revive": 0.25,
+  "revive": {
+    "max_hp_factor": 0.6,
+    "hp_factor": 0.5,
+    "hunger": 0.5,
+    "thirst": 0.5
+  }
+}

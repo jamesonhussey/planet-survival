@@ -12,6 +12,19 @@ var save_data: Dictionary = {}
 var pause_menu: PauseMenu
 var autosave_interval: float = 180.0
 var _autosave_accum: float = 0.0
+# --- co-op ---
+var replicator: Replicator
+var remote_players: Dictionary = {}     # peer -> RemotePlayer
+var pickups_by_id: Dictionary = {}      # id -> ItemPickup
+var next_pickup_id: int = 1
+var rituals: Array = []                 # Array[Ritual] (server)
+var revives: Dictionary = {}            # peer -> count (server)
+var ghost: bool = false
+var _net_accum: float = 0.0
+var _clock_accum: float = 0.0
+var _gas_accum: float = 0.0
+var _creature_accum: float = 0.0
+var _ritual_accum: float = 0.0
 
 var planet: Dictionary = {}
 var mode: Dictionary = {}
@@ -233,13 +246,28 @@ func _build_authority() -> void:
 	commands.kit_lookup = func(_peer: int) -> PlayerKit: return kit
 	add_child(session)
 	add_child(commands)
-	session.setup_local_host(commands)
-	commands.block_dug.connect(func(_peer: int, pos: Vector3i, _id: int) -> void:
+	session.setup(commands)
+	replicator = Replicator.new()
+	replicator.name = "Replicator"
+	add_child(replicator)
+	replicator.setup(self, world)
+	session.replicator = replicator
+	commands.kit_lookup = func(peer: int) -> PlayerKit: return kit if peer == session.local_peer_id else null
+	commands.block_dug.connect(func(peer: int, pos: Vector3i, id: int) -> void:
 		_after_edit(pos)
-		if sounds != null: sounds.play("dig"))
-	commands.block_placed.connect(func(_peer: int, pos: Vector3i, _id: int) -> void:
+		if sounds != null: sounds.play("dig")
+		if session.is_online():
+			replicator.broadcast_block(pos, 0, peer)
+			if peer != session.local_peer_id:
+				var drop := Data.block(id).drop
+				if drop != "":
+					replicator.grant(peer, drop, 1, Vector3(pos)))
+	commands.block_placed.connect(func(peer: int, pos: Vector3i, id: int) -> void:
 		_after_edit(pos)
-		if sounds != null: sounds.play("place"))
+		if sounds != null: sounds.play("place")
+		if session.is_online():
+			replicator.broadcast_block(pos, id, peer))
+	_wire_replication()
 	commands.command_rejected.connect(func(_peer: int, _cmd: Dictionary, reason: String) -> void:
 		if reason != "nothing to dig" and reason != "occupied":
 			EventBus.toast.emit(reason, 1.0))
@@ -247,6 +275,291 @@ func _build_authority() -> void:
 		spawn_pickup(item, Vector3(pos) + Vector3(0.5, 0.2, 0.5))
 		EventBus.toast.emit("Inventory full: %s dropped" % item.display_name(), 1.5))
 	world.block_changed.connect(_on_block_changed_lights)
+
+
+func _wire_replication() -> void:
+	# Server side: commands and requests from clients.
+	replicator.client_command.connect(func(cmd: Dictionary) -> void: commands.handle(cmd))
+	replicator.client_take_pickup.connect(_on_client_take_pickup)
+	replicator.client_drop.connect(func(_peer: int, item: Dictionary, pos: Vector3) -> void:
+		var it := kit._item_from_dict(item, {})
+		if it != null:
+			spawn_pickup(it, pos))
+	replicator.client_harvest.connect(_on_client_harvest)
+	replicator.client_attack.connect(func(peer: int, creature_id: int) -> void:
+		var cr: Creature = props.creatures_by_id.get(creature_id)
+		var st: Dictionary = replicator.peer_states.get(peer, {})
+		if cr != null and not cr.dead:
+			cr.hit(12.0, st.get("pos", cr.global_position + Vector3(1, 0, 0)), "blunt"))
+	replicator.client_died.connect(_on_client_died)
+	replicator.client_place_tag.connect(_on_client_place_tag)
+	# Client side: state from the server.
+	replicator.remote_block_set.connect(func(pos: Vector3i, id: int, actor: int) -> void:
+		var old := world.get_block(pos)
+		if world.set_block(pos, id):
+			_after_edit(pos)
+			if sounds != null and pos.distance_to(Vector3i(player.global_position.floor())) < 24:
+				sounds.play("dig" if id == 0 else "place")
+		if actor == session.local_peer_id and id != 0 and not session.is_server():
+			var item_id := str(Data.block_items.get(Data.block(id).name, ""))
+			if item_id != "":
+				kit.equipment.consume(item_id, 1)
+		if old == id:
+			pass)
+	replicator.remote_grant.connect(func(item_id: String, count: int, pos: Vector3) -> void:
+		var it := Data.make_item(item_id, count)
+		if it == null:
+			return
+		it.examined = true
+		if kit.equipment.add_item(it):
+			EventBus.toast.emit("+%d %s" % [count, it.display_name()], 1.2)
+		else:
+			replicator.send_drop(it.to_dict(), pos + Vector3(0.5, 0.5, 0.5))
+			EventBus.toast.emit("No room for %s" % it.display_name(), 1.2))
+	replicator.remote_peer_state.connect(_on_remote_peer_state)
+	replicator.remote_peer_left.connect(func(peer: int) -> void:
+		var rp: RemotePlayer = remote_players.get(peer)
+		if rp != null:
+			rp.queue_free()
+			remote_players.erase(peer)
+		EventBus.toast.emit("A survivor left.", 2.0))
+	replicator.remote_pickup_spawn.connect(func(id: int, item: Dictionary, pos: Vector3) -> void:
+		if pickups_by_id.has(id):
+			return
+		var it := kit._item_from_dict(item, {})
+		if it != null:
+			_make_pickup(it, pos, id))
+	replicator.remote_pickup_remove.connect(func(id: int) -> void:
+		var p: ItemPickup = pickups_by_id.get(id)
+		if p != null:
+			pickups.erase(p)
+			pickups_by_id.erase(id)
+			p.queue_free())
+	replicator.remote_prop_harvested.connect(func(cell: Vector2i, regrow_at: float, removed: bool) -> void:
+		props.apply_remote_harvest(cell, regrow_at, removed))
+	replicator.remote_revive.connect(_revive_at)
+	replicator.remote_ritual.connect(func(state: Dictionary) -> void:
+		if bool(state.get("complete", false)):
+			EventBus.toast.emit("The vigil is complete. %s returns." % str(state.get("owner_name", "Someone")), 4.0)
+		elif bool(state.get("failed", false)):
+			EventBus.toast.emit("The vigil failed: %s." % str(state.get("reason", "")), 4.0)
+		elif int(state.get("owner", 0)) == session.local_peer_id and ghost:
+			hud.set_status("GHOST  vigil %d%%%s" % [int(float(state.get("progress", 0.0)) * 100.0), "" if bool(state.get("fire", false)) else "  (no fire!)"]))
+	if session.is_online() and session.is_server():
+		Net.peer_run_ready.connect(_on_peer_run_ready)
+		Net.peer_left.connect(func(id: int) -> void:
+			replicator.broadcast_peer_left(id)
+			var rp: RemotePlayer = remote_players.get(id)
+			if rp != null:
+				rp.queue_free()
+				remote_players.erase(id)
+			EventBus.toast.emit("%s left." % str(Net.peer_names.get(id, "A survivor")), 2.0))
+
+
+func _on_peer_run_ready(peer: int) -> void:
+	var edited: Dictionary = {}
+	for c in world.edited_chunks():
+		edited[c.cpos] = c.blocks
+	var hz: Array = []
+	if gas_hazard != null:
+		hz = [gas_hazard.id, gas_hazard.phase, gas_hazard.intensity]
+	var pk: Array = []
+	for id in pickups_by_id:
+		var p: ItemPickup = pickups_by_id[id]
+		if is_instance_valid(p):
+			pk.append([id, p.item.to_dict(), p.global_position])
+	var rs: Array = []
+	for r in rituals:
+		rs.append(_ritual_state(r))
+	replicator.send_initial_state(peer, edited, hz, pk, props.harvested_state(), rs)
+	EventBus.toast.emit("%s joined." % str(Net.peer_names.get(peer, "A survivor")), 3.0)
+
+
+func _on_remote_peer_state(peer: int, pname: String, pos: Vector3, yaw: float, pitch: float, moving: bool, is_ghost: bool) -> void:
+	if peer == session.local_peer_id:
+		return
+	var rp: RemotePlayer = remote_players.get(peer)
+	if rp == null:
+		rp = RemotePlayer.new()
+		rp.name = "peer_%d" % peer
+		view.add_child(rp)
+		rp.setup(peer, pname, pickup_material, peer)
+		rp.global_position = pos
+		remote_players[peer] = rp
+	rp.apply_state(pos, yaw, pitch, moving, is_ghost)
+
+
+func _on_client_take_pickup(peer: int, id: int) -> void:
+	var p: ItemPickup = pickups_by_id.get(id)
+	if p == null or not is_instance_valid(p):
+		return
+	var st: Dictionary = replicator.peer_states.get(peer, {})
+	var ppos: Vector3 = st.get("pos", p.global_position)
+	if ppos.distance_to(p.global_position) > 4.0:
+		return
+	var item := p.item
+	_remove_pickup(p)
+	replicator.grant(peer, item.id, item.count, p.global_position)
+
+
+func _on_client_harvest(peer: int, cell: Vector2i) -> void:
+	var prop := props.prop_by_cell(cell)
+	if prop == null:
+		return
+	var cfg := props.harvest_config(prop)
+	if cfg.is_empty():
+		return
+	var at := prop.global_position
+	props.harvest(prop)
+	replicator.broadcast_prop_harvested(cell, float(props.regrow_at.get(cell, 0.0)), props.removed.has(cell))
+	for entry in [cfg, cfg.get("extra", {})]:
+		if (entry as Dictionary).is_empty():
+			continue
+		var cr: Array = entry.get("count", [1, 1])
+		var n := kit.rng.randi_range(int(cr[0]), int(cr[1]))
+		if n > 0:
+			replicator.grant(peer, str(entry.get("id", "")), n, at)
+
+
+func _on_client_died(peer: int, pos: Vector3, items: Array) -> void:
+	for d in items:
+		var it := kit._item_from_dict(d, {})
+		if it != null:
+			spawn_pickup(it, pos + Vector3(kit.rng.randf_range(-0.6, 0.6), 0.5, kit.rng.randf_range(-0.6, 0.6)))
+	replicator.ghosts[peer] = true
+	var who := str(Net.peer_names.get(peer, "A survivor"))
+	if peer != session.local_peer_id:
+		EventBus.toast.emit("%s died. Their tag lies where they fell." % who, 4.0)
+	replicator.broadcast_toast("%s died. Their tag lies where they fell." % who, 4.0)
+
+
+func _on_client_place_tag(_peer: int, cairn_pos: Vector3i, owner: int, owner_name: String) -> void:
+	if Data.block(world.get_block(cairn_pos)).name != "cairn":
+		return
+	for r in rituals:
+		if (r as Ritual).cairn_pos == cairn_pos:
+			return
+	var r := Ritual.new(cairn_pos, owner, clock.day_time(), int(revives.get(owner, 0)))
+	r.set_meta("owner_name", owner_name)
+	rituals.append(r)
+	var text := "A vigil begins for %s. Keep a fire by the cairn through the night." % owner_name
+	EventBus.toast.emit(text, 4.0)
+	replicator.broadcast_toast(text, 4.0)
+
+
+func _ritual_state(r: Ritual) -> Dictionary:
+	return {"owner": r.tag_owner, "owner_name": str(r.get_meta("owner_name", "")), "progress": r.progress(), "fire": r.fire_present,
+		"complete": r.complete, "failed": r.failed, "reason": r.fail_reason, "pos": r.cairn_pos}
+
+
+func _tick_rituals(dt_days: float) -> void:
+	for r in rituals.duplicate():
+		var rr := r as Ritual
+		var fire := false
+		for p in _blocks_near(Vector3(rr.cairn_pos) + Vector3(0.5, 0.5, 0.5), 3, func(m: MaterialProps) -> bool: return m.heat > 0.0):
+			fire = true
+			break
+		var intact := Data.block(world.get_block(rr.cairn_pos)).name == "cairn"
+		rr.tick(dt_days, clock.is_night(), fire, intact)
+		var state := _ritual_state(rr)
+		replicator.broadcast_ritual(state)
+		replicator.remote_ritual.emit(state)
+		if rr.complete:
+			revives[rr.tag_owner] = int(revives.get(rr.tag_owner, 0)) + 1
+			replicator.revive(rr.tag_owner, Vector3(rr.cairn_pos) + Vector3(0.5, 1.2, 0.5))
+			rituals.erase(r)
+		elif rr.failed:
+			rituals.erase(r)
+
+
+## Dead in co-op: become a ghost instead of ending the run.
+func _become_ghost(cause: String) -> void:
+	ghost = true
+	player.ghost = true
+	player.fly = true
+	var items: Array = []
+	for it in kit.equipment.all_items():
+		if it.parent_grid != null and (it.parent_grid.owner_item == null or not kit.equipment.all_items().has(it.parent_grid.owner_item)):
+			items.append(it.to_dict())
+	for holder in [kit.equipment.rig, kit.equipment.backpack]:
+		if holder != null:
+			items.append(holder.to_dict())
+	var tag := Data.make_item("player_tag")
+	if tag != null:
+		tag.data = {"owner": session.local_peer_id, "owner_name": Net.my_name}
+		items.append(tag.to_dict())
+	replicator.send_died(player.global_position, items)
+	kit.equipment = Equipment.new()
+	kit.equipment.changed.connect(_refresh_quick)
+	inventory_ui.kit = kit
+	inventory_ui._rebuild()
+	_refresh_quick()
+	hud.set_status("GHOST  a friend must set your tag on a cairn and keep a fire through a night")
+	EventBus.toast.emit("You died (%s). You can watch. Your tag lies where you fell." % cause.replace("_", " "), 6.0)
+	if sounds != null:
+		sounds.stop_all_loops()
+		sounds.play("ui_low")
+
+
+func _revive_at(pos: Vector3) -> void:
+	ghost = false
+	player.ghost = false
+	player.fly = false
+	var rs := Ritual.revive_state()
+	kit.body = BodyHealth.new()
+	for part in BodyHealth.PARTS:
+		kit.body.max_hp[part] = float(BodyHealth.DEFAULT_MAX[part]) * float(rs["max_hp_factor"])
+		kit.body.hp[part] = kit.body.max_hp[part] * float(rs["hp_factor"]) / float(rs["max_hp_factor"])
+	kit.body.died.connect(func(cause: String) -> void: _finish(false, cause))
+	kit.vitals.hunger = float(rs["hunger"])
+	kit.vitals.thirst = float(rs["thirst"])
+	kit.vitals.oxygen = 1.0
+	kit.vitals.alive = true
+	player.global_position = pos
+	player.velocity = Vector3.ZERO
+	hud.set_status("")
+	EventBus.toast.emit("You come back. Weak, empty-handed, alive.", 5.0)
+
+
+func _net_tick(delta: float) -> void:
+	if not session.is_online():
+		return
+	_net_accum += delta
+	if _net_accum >= 0.1:
+		_net_accum = 0.0
+		var moving := Vector2(player.velocity.x, player.velocity.z).length() > 0.3
+		replicator.send_my_state(Net.my_name, player.global_position, player._yaw, player._pitch, moving, ghost)
+	if not session.is_server():
+		return
+	_clock_accum += delta
+	if _clock_accum >= 1.0:
+		_clock_accum = 0.0
+		replicator.broadcast_clock(clock.day, clock.day_fraction, clock.time_scale)
+	_gas_accum += delta
+	if _gas_accum >= 0.5 and gas_hazard != null:
+		_gas_accum = 0.0
+		replicator.broadcast_gas(gas_hazard.sim.cells)
+	_creature_accum += delta
+	if _creature_accum >= 0.2:
+		_creature_accum = 0.0
+		var states: Array = []
+		for cr in props.creatures:
+			if not is_instance_valid(cr):
+				continue
+			var near := false
+			for st in replicator.peer_states.values():
+				if (st["pos"] as Vector3).distance_to(cr.global_position) < 80.0:
+					near = true
+					break
+			if near:
+				states.append([cr.net_id, cr.kind, props.creature_seed(cr), cr.global_position, cr.rotation.y, cr.moving, cr.dead])
+		if not states.is_empty():
+			replicator.broadcast_creatures(states)
+	_ritual_accum += delta
+	if _ritual_accum >= 1.0:
+		_ritual_accum = 0.0
+		if not rituals.is_empty():
+			_tick_rituals(1.0 * clock.time_scale / (clock.minutes_per_day * 60.0))
 
 
 func _after_edit(pos: Vector3i) -> void:
@@ -389,6 +702,13 @@ func _build_hazards() -> void:
 			if m is HeavyGasHazard:
 				gas_hazard = m
 				break
+	if session.is_online() and not session.is_server():
+		hazards.enabled = false
+		for m in hazards.modules:
+			m.client_mode = true
+	elif session.is_online():
+		EventBus.hazard_phase_changed.connect(func(id: String, phase: int, intensity: float) -> void:
+			replicator.broadcast_hazard_phase(id, phase, intensity))
 
 
 func _build_presentation() -> void:
@@ -410,6 +730,7 @@ func _build_presentation() -> void:
 	view.add_child(props)
 	props.keep_clear = spawn_point
 	props.clock = clock
+	props.spawn_creatures = not (session.is_online() and not session.is_server())
 	props.creature_spawned.connect(_on_creature_spawned)
 	props.setup(world, generator, planet, world_seed, pickup_material, MaterialFactory.voxel_model(Data.render, true))
 	props.set_focus(spawn_point)
@@ -728,8 +1049,14 @@ func _on_action_finished(kind: String, result: Dictionary) -> void:
 			var cfg: Dictionary = result.get("cfg", {})
 			if target == null or not is_instance_valid(target):
 				return
+			if session.is_online() and not session.is_server():
+				replicator.send_harvest(target.get_meta("cell"))
+				return
 			var at := target.global_position
+			var cell: Vector2i = target.get_meta("cell")
 			props.harvest(target)
+			if session.is_online():
+				replicator.broadcast_prop_harvested(cell, float(props.regrow_at.get(cell, 0.0)), props.removed.has(cell))
 			_give_or_drop(str(cfg.get("id", "")), cfg.get("count", [1, 1]), at)
 			if cfg.has("extra"):
 				var ex: Dictionary = cfg["extra"]
@@ -782,6 +1109,10 @@ func _on_attack(target: Node) -> void:
 		var cr := target as Creature
 		if cr.dead:
 			return
+		if session.is_online() and not session.is_server():
+			replicator.send_attack(cr.net_id)
+			player.add_shake(0.08, 0.15)
+			return
 		var died := cr.hit(12.0, player.global_position, "blunt")
 		player.add_shake(0.08, 0.15)
 		if sounds != null:
@@ -802,12 +1133,35 @@ func _on_landed(impact: float) -> void:
 
 
 func spawn_pickup(item: ItemInstance, pos: Vector3) -> ItemPickup:
+	if session.is_online() and not session.is_server():
+		replicator.send_drop(item.to_dict(), pos)
+		return null
+	var id := next_pickup_id
+	next_pickup_id += 1
+	var p := _make_pickup(item, pos, id)
+	if session.is_online():
+		replicator.broadcast_pickup_spawn(id, item.to_dict(), pos)
+	return p
+
+
+func _make_pickup(item: ItemInstance, pos: Vector3, id: int) -> ItemPickup:
 	var p := ItemPickup.new()
 	pickups_root.add_child(p)
 	p.setup(item, pickup_material, world)
 	p.global_position = pos
+	p.set_meta("net_id", id)
 	pickups.append(p)
+	pickups_by_id[id] = p
 	return p
+
+
+func _remove_pickup(p: ItemPickup) -> void:
+	var id := int(p.get_meta("net_id", 0))
+	pickups.erase(p)
+	pickups_by_id.erase(id)
+	p.queue_free()
+	if session.is_online() and session.is_server():
+		replicator.broadcast_pickup_remove(id)
 
 
 func nearby_pickups() -> Array:
@@ -821,10 +1175,12 @@ func nearby_pickups() -> Array:
 func take_pickup(p: ItemPickup) -> void:
 	if not is_instance_valid(p):
 		return
+	if session.is_online() and not session.is_server():
+		replicator.send_take_pickup(int(p.get_meta("net_id", 0)))
+		return
 	if kit.equipment.add_item(p.item):
 		EventBus.toast.emit("Took %s" % p.item.display_name(), 1.2)
-		pickups.erase(p)
-		p.queue_free()
+		_remove_pickup(p)
 		if sounds != null:
 			sounds.play("ui_blip")
 	else:
@@ -849,8 +1205,17 @@ func _on_interact() -> void:
 			if kit.start_harvest(prop, cfg, str(prop.get_meta("generator", "prop"))):
 				EventBus.toast.emit("Harvesting...", 1.0)
 			return
-	# Water: drink and refill canteens.
+	# A tag set on a cairn starts a vigil (co-op revival).
 	var aim := player._aim
+	if aim.hit and Data.block(world.get_block(aim.pos)).name == "cairn":
+		var tag := player.selected_item()
+		if tag != null and tag.id == "player_tag":
+			replicator.send_place_tag(aim.pos, int(tag.data.get("owner", 0)), str(tag.data.get("owner_name", "someone")))
+			kit.equipment.remove_item(tag)
+			return
+		EventBus.toast.emit("Select a Survivor's Tag and press E to start the vigil.", 2.0)
+		return
+	# Water: drink and refill canteens.
 	if aim.hit and Data.block(world.get_block(aim.pos)).fluid:
 		kit.vitals.consume({"thirst": 0.25})
 		var n := kit.refill_water()
@@ -881,7 +1246,10 @@ func _on_day_changed(day: int) -> void:
 func _physics_process(delta: float) -> void:
 	if ended or player == null:
 		return
+	_net_tick(delta)
 	var dt := delta * clock.time_scale
+	if ghost:
+		return
 	var exposure := 0.0
 	if gas_hazard != null:
 		exposure = gas_hazard.exposure_at(player.global_position)
@@ -895,7 +1263,7 @@ func _physics_process(delta: float) -> void:
 	player.speed_multiplier = float(pen["move_speed"])
 	player.aim_jitter = float(pen["aim_shake"])
 	# Creatures obey the same rule (and die first on low ground: a warning sign).
-	if gas_hazard != null and props != null and not gas_hazard.sim.cells.is_empty():
+	if session.is_server() and gas_hazard != null and props != null and not gas_hazard.sim.cells.is_empty():
 		for cr in props.creatures:
 			if is_instance_valid(cr) and not cr.dead:
 				cr.breathe(gas_hazard.exposure_at(cr.global_position, 0.8), dt)
@@ -929,6 +1297,9 @@ func _physics_process(delta: float) -> void:
 func _finish(won: bool, cause: String = "") -> void:
 	if ended:
 		return
+	if not won and session.is_online() and not ghost:
+		_become_ghost(cause)
+		return
 	ended = true
 	player.input_enabled = false
 	_close_all_screens()
@@ -960,6 +1331,13 @@ func _process(_delta: float) -> void:
 		if Input.is_action_just_pressed("pause"):
 			_close_pause()
 		return
+	if verbose and Game.args.has("nettest"):
+		var cp := Vector3i(int(floor(spawn_point.x)) + 2, generator.height_at(int(floor(spawn_point.x)) + 2, int(floor(spawn_point.z)) + 2), int(floor(spawn_point.z)) + 2)
+		if not session.is_server() and _frame == 150:
+			session.submit({"type": "dig", "pos": cp, "from": Vector3(cp) + Vector3(0.5, 2.5, 0.5)})
+			print("[nettest] client: dig requested at %s" % str(cp))
+		if _frame % 100 == 0:
+			print("[nettest] %s: block %s = %d | remote players %d | peers %s | gas cells %d | day %d %s" % ["host" if session.is_server() else "client", str(cp), world.get_block(cp), remote_players.size(), str(Net.peer_ids()), gas_hazard.sim.cells.size() if gas_hazard != null else -1, clock.day, clock.clock_text()])
 	if verbose and Game.args.has("savetest") and _frame == 30:
 		clock.day = 2
 		print("[savetest] save -> %s" % error_string(save_game()))
@@ -1009,6 +1387,6 @@ func _process(_delta: float) -> void:
 		else:
 			_open_pause()
 	_autosave_accum += _delta
-	if _autosave_accum >= autosave_interval and not ended and not pause_menu.is_open:
+	if _autosave_accum >= autosave_interval and not ended and not pause_menu.is_open and not (session.is_online() and not session.is_server()):
 		_autosave_accum = 0.0
 		save_game()

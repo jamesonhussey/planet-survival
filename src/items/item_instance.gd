@@ -16,6 +16,7 @@ var uses_left: int = 0
 var hp_pool: float = 0.0
 var durability: float = 1.0
 var freshness_hours: float = -1.0   # food: game hours until spoiled (-1 = not started)
+var data: Dictionary = {}            # free-form per-instance data (e.g. tag owner)
 var grids: Array = []            # Array[InventoryGrid] for containers
 ## Grid this item sits in (weak back-reference; the grid owns the item).
 var parent_grid: InventoryGrid:
@@ -90,6 +91,8 @@ func weight() -> float:
 
 
 func display_name() -> String:
+	if examined and data.has("owner_name"):
+		return "%s (%s)" % [str(def.get("name", id.capitalize())), str(data["owner_name"])]
 	if examined:
 		return str(def.get("name", id.capitalize()))
 	return str(def.get("unknown_name", "Unknown item"))
@@ -127,7 +130,7 @@ func contents(recursive: bool = true) -> Array:
 
 
 func to_dict() -> Dictionary:
-	var d := {"id": id, "uid": uid, "count": count, "rotated": rotated, "examined": examined, "uses_left": uses_left, "hp_pool": hp_pool, "durability": durability, "freshness_hours": freshness_hours}
+	var d := {"id": id, "uid": uid, "count": count, "rotated": rotated, "examined": examined, "uses_left": uses_left, "hp_pool": hp_pool, "durability": durability, "freshness_hours": freshness_hours, "data": data.duplicate()}
 	if is_container():
 		var gs: Array = []
 		for g in grids:

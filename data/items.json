@@ -538,6 +538,33 @@
       },
       "refillable": true,
       "desc": "Eight drinks. Refill at any water with E."
+    },
+    {
+      "id": "cairn",
+      "name": "Cairn Stones",
+      "category": "block",
+      "block": "cairn",
+      "size": [
+        2,
+        2
+      ],
+      "weight": 16.0,
+      "stack": 1,
+      "desc": "Six stones bound with rope. Place it, set a Tag on it, keep a fire burning beside it through a night."
+    },
+    {
+      "id": "player_tag",
+      "name": "Survivor's Tag",
+      "unknown_name": "Metal tag",
+      "known": true,
+      "category": "key",
+      "size": [
+        1,
+        1
+      ],
+      "weight": 0.05,
+      "stack": 1,
+      "desc": "Dropped where someone died. Set it on a cairn to call them back."
     }
   ]
 }

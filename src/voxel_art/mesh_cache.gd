@@ -9,6 +9,7 @@ const GENERATORS := {
 	"lantern": "res://src/voxel_art/generators/lantern_generator.gd",
 	"grazer": "res://src/voxel_art/generators/grazer_generator.gd",
 	"berry_bush": "res://src/voxel_art/generators/berry_bush_generator.gd",
+	"humanoid": "res://src/voxel_art/generators/humanoid_generator.gd",
 }
 
 static var _cache: Dictionary = {}

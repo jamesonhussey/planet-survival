@@ -41,6 +41,9 @@ From orbit the player sees four planets (01–04) and picks one. Each looks liva
 | 2026-10-20 | One save slot per run (`user://saves/current.*`), edited chunks only, autosave every 3 real minutes, deleted on death or win | Permadeath per the player's answer; saves exist for quitting, not retrying |
 | 2026-10-20 | Orbit screen: all four planets shown, uncharted ones greyed with a note | The fantasy of choosing is there from day one |
 | 2026-10-20 | Day/night cycle drives sun angle, sky, fog and ambient; nights reach 85% darkness on 04 | Flashlight and campfire earn their keep |
+| 2026-10-20 | Co-op over ENet: host runs the world; clients generate terrain from the seed and receive edited chunks, block edits, hazard phases, packed gas cells (2 Hz, within 64 blocks of a player), clock, creatures (5 Hz), pickups, harvests, rituals. Inventory/health/movement are client-owned; the server grants dug items and trusts placement | Friendly co-op first; the authority seam is in place to tighten later. Steam transport swaps in at M7 |
+| 2026-10-20 | Death in co-op = ghost: fly, watch, cannot act; all items plus a Survivor's Tag drop as pickups. Solo stays permadeath | Nobody sits out a session |
+| 2026-10-20 | Revival Ritual: craft Cairn Stones (6 cobble + rope), place the cairn, select the dead player's Tag and press E on it, keep a heat source within 3 blocks through one full night (1.25 nights for the second revive, +0.25 each); a destroyed cairn fails the vigil, a dead fire only pauses it. Revived: 60% max HP, half hunger/thirst, empty hands | Property-based (any fire, any stone), costs time and attention during the planet's own hazard |
 
 ## Planets
 
@@ -78,7 +81,7 @@ PS1 / liminal: 3D rendered to a 480×270 SubViewport, nearest upscale, Bayer 4×
 1. ✅ Vertical slice on 04: movement, streamed voxel terrain, dig/place, 15 materials with properties, GasSim + director + telegraph, oxygen, PS1 pipeline, micro-voxel tree/lantern/grazer, debug tools, tests.
 2. ✅ Tarkov inventory (grid, rotation, nested containers, weight, examine, quick slots, pickups) + body-part health, status effects, meds with use times, health screen, fall damage, breather mask.
 3. ✅ Survival loop: hunger/thirst/temperature/stamina, food & spoilage & cooking, crafting from `recipes.json`, campfire, harvesting, hunting, day/night, planet select, pause menu, save/load, export presets + build scripts.
-4. Co-op foundation (ENet, replication, ghost + ritual) so later systems are multiplayer-aware.
+4. ✅ Co-op foundation (ENet host/join, replication, remote avatars, ghost + Revival Ritual, `tools/nettest.sh`).
 5. Planets 01 and 02 (light ray; flood + swarm).
 6. NPCs, villages, enemies for 01/02/04.
 7. Planet 03, escalation balancing, polish, GodotSteam (achievements, cloud saves, Steam lobbies), release checklist; infinite-world switch evaluated.

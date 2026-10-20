@@ -354,6 +354,29 @@
         "base": "#ff8a2a",
         "variance": 0.3
       }
+    },
+    {
+      "id": 16,
+      "name": "cairn",
+      "display": "Cairn",
+      "solid": true,
+      "hardness": 3.0,
+      "tool": "pick",
+      "drop": "cobble",
+      "waterproof": true,
+      "airtight": false,
+      "opacity": 1.0,
+      "heat_resistance": 1.0,
+      "flammability": 0.0,
+      "strength": 8,
+      "buoyancy": -1,
+      "weight": 16.0,
+      "ritual": true,
+      "texture": {
+        "style": "speckle",
+        "base": "#6a6a66",
+        "variance": 0.22
+      }
     }
   ]
 }

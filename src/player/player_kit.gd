@@ -359,6 +359,7 @@ func _item_from_dict(d: Dictionary, uid_map: Dictionary) -> ItemInstance:
 	it.hp_pool = float(d.get("hp_pool", it.hp_pool))
 	it.durability = float(d.get("durability", 1.0))
 	it.freshness_hours = float(d.get("freshness_hours", -1.0))
+	it.data = (d.get("data", {}) as Dictionary).duplicate()
 	var grids: Array = d.get("grids", [])
 	for i in mini(grids.size(), it.grids.size()):
 		_grid_from_dict(it.grids[i], grids[i], uid_map)

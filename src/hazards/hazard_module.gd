@@ -17,6 +17,9 @@ var world: WorldData
 var clock: GameClock
 var context: Dictionary = {}      # shared refs: "player_position": Callable, "planet": Dictionary
 var events_so_far: int = 0
+## Clients mirror phases from the server: timers only advance cues, never
+## transitions or simulation.
+var client_mode: bool = false
 
 var _cue_index: int = 0
 var _cues: Array = []
@@ -83,6 +86,14 @@ func _enter(p: Phase) -> void:
 	_fire_due_cues()
 
 
+## Server-driven phase change on a client (fires that phase's cues locally).
+func enter_remote(p: int, event_intensity: float) -> void:
+	intensity = event_intensity
+	if p != Phase.IDLE and phase == Phase.IDLE:
+		events_so_far += 1
+	_enter(p as Phase)
+
+
 func _process(delta: float) -> void:
 	if phase == Phase.IDLE:
 		_tick_idle(delta)
@@ -90,6 +101,8 @@ func _process(delta: float) -> void:
 	var scaled := delta * (clock.time_scale if clock != null else 1.0)
 	phase_time += scaled
 	_fire_due_cues()
+	if client_mode:
+		return
 	match phase:
 		Phase.WARNING:
 			_tick_warning(scaled)

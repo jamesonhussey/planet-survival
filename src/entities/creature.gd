@@ -20,6 +20,11 @@ var kind: String = "grazer"
 var _dead_tilt: float = 0.0
 var flee_timer: float = 0.0
 var drops: Array = []   # [{"id": ..., "count": [min,max]}] from planet data
+var net_id: int = 0
+## Client-side mirror: no brain, no physics; position/rotation come from the server.
+var remote: bool = false
+var _remote_target: Vector3
+var _remote_yaw: float = 0.0
 
 signal died(creature: Creature, cause: String)
 
@@ -87,7 +92,27 @@ func die(cause: String) -> void:
 				mi.material_override = dup
 
 
+## Apply a replicated state (client side).
+func apply_remote(pos: Vector3, yaw: float, is_moving: bool, is_dead: bool) -> void:
+	_remote_target = pos
+	_remote_yaw = yaw
+	moving = is_moving
+	if is_dead and not dead:
+		die("remote")
+
+
 func _physics_process(delta: float) -> void:
+	if remote:
+		global_position = global_position.lerp(_remote_target, minf(1.0, delta * 10.0))
+		rotation.y = lerp_angle(rotation.y, _remote_yaw, minf(1.0, delta * 10.0))
+		if dead:
+			_dead_tilt = move_toward(_dead_tilt, PI * 0.5, delta * 3.0)
+			if rig_root != null:
+				rig_root.rotation.z = _dead_tilt
+		else:
+			velocity = (_remote_target - global_position) * 4.0
+			_animate(delta)
+		return
 	if not is_on_floor():
 		velocity.y -= 20.0 * delta
 	if dead:

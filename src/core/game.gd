@@ -9,6 +9,9 @@ extends Node
 ##   --frames=240         frame budget for --smoke/--screenshot
 ##   --seed=12345         world seed
 ##   --continue           load the save slot if one exists
+##   --host[=port]        host a co-op game (with --planet/--mode/--seed)
+##   --join=ip[:port]     join a co-op game
+##   --name=Name          player name shown to others
 
 enum State { BOOT, PLANET_SELECT, RUN, END }
 
@@ -30,6 +33,26 @@ func boot(root: Node) -> void:
 	screenshot_mode = args.has("screenshot")
 	if smoke:
 		smoke_frames_left = int(args.get("frames", "240"))
+	if args.has("fps"):
+		Engine.max_fps = int(args["fps"])
+	if args.has("name"):
+		Net.my_name = str(args["name"])
+	Net.joined.connect(_on_net_joined)
+	Net.join_failed.connect(func(reason: String) -> void:
+		EventBus.toast.emit("Join failed: %s" % reason, 4.0)
+		show_planet_select())
+	Net.disconnected_from_host.connect(func() -> void:
+		EventBus.toast.emit("Disconnected from host.", 4.0)
+		show_planet_select())
+	if args.has("join"):
+		var parts := str(args["join"]).split(":")
+		var port := int(parts[1]) if parts.size() > 1 else Net.DEFAULT_PORT
+		join_game(parts[0], port)
+		return
+	if args.has("host"):
+		var port := int(args["host"]) if str(args["host"]) != "1" else Net.DEFAULT_PORT
+		host_game(str(args.get("planet", "04")), str(args.get("mode", "standard")), int(args.get("seed", "1337")), port)
+		return
 	if args.has("continue") and SaveSystem.exists():
 		load_save()
 		return
@@ -55,6 +78,49 @@ func show_planet_select() -> void:
 		SaveSystem.delete()
 		start_run(planet_id, mode_id, randi() % 1000000))
 	select_root.continue_requested.connect(load_save)
+	select_root.host_requested.connect(func(planet_id: String, mode_id: String) -> void:
+		SaveSystem.delete()
+		host_game(planet_id, mode_id, randi() % 1000000))
+	select_root.join_requested.connect(func(address: String) -> void:
+		var parts := address.split(":")
+		join_game(parts[0], int(parts[1]) if parts.size() > 1 else Net.DEFAULT_PORT))
+
+
+func host_game(planet_id: String, mode_id: String, seed: int, port: int = Net.DEFAULT_PORT) -> void:
+	var err := Net.host({"planet_id": planet_id, "mode_id": mode_id, "seed": seed}, port)
+	if err != OK:
+		EventBus.toast.emit(Net.last_error, 4.0)
+		return
+	start_run(planet_id, mode_id, seed)
+
+
+var connecting_root: Node = null
+
+
+func join_game(address: String, port: int) -> void:
+	_clear_run()
+	_clear_select()
+	var err := Net.join(address, port)
+	if err != OK:
+		EventBus.toast.emit(Net.last_error, 4.0)
+		show_planet_select()
+		return
+	state = State.PLANET_SELECT
+	connecting_root = CanvasLayer.new()
+	var l := Label.new()
+	l.theme = PixelFont.make_theme(2)
+	l.text = "CONNECTING TO %s:%d ..." % [address, port]
+	l.set_anchors_preset(Control.PRESET_CENTER)
+	l.position = Vector2(300, 320)
+	connecting_root.add_child(l)
+	root_node.add_child(connecting_root)
+
+
+func _on_net_joined(config: Dictionary) -> void:
+	if connecting_root != null:
+		connecting_root.queue_free()
+		connecting_root = null
+	start_run(str(config.get("planet_id", "04")), str(config.get("mode_id", "standard")), int(config.get("seed", 1337)))
 
 
 func load_save() -> void:
@@ -78,6 +144,11 @@ func start_run(planet_id: String, mode_id: String, seed: int, save_data: Diction
 	run_root.set("save_data", save_data)
 	root_node.add_child(run_root)
 	EventBus.run_started.emit(planet_id, mode_id)
+	# Smoke budgets count frames *inside* the run (connecting/menus excluded).
+	if smoke_frames_left >= 0:
+		smoke_frames_left = int(args.get("frames", "240"))
+	if Net.is_online() and not Net.is_server():
+		Net.ready_in_run.rpc_id(1)
 
 
 func end_run(won: bool, day: int) -> void:
@@ -88,6 +159,7 @@ func end_run(won: bool, day: int) -> void:
 
 
 func return_to_orbit() -> void:
+	Net.leave()
 	show_planet_select()
 
 

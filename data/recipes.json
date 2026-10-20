@@ -1,17 +1,268 @@
 {
   "_doc": "Crafting recipes. station '' = by hand; 'campfire' = a lit campfire block within 3 blocks. time in real seconds.",
   "recipes": [
-    {"id": "planks_from_log", "name": "Planks", "in": [{"id": "log", "count": 1}], "out": [{"id": "planks", "count": 4}], "station": "", "time": 2.0, "desc": "Split a log into four planks."},
-    {"id": "campfire", "name": "Campfire", "in": [{"id": "log", "count": 2}, {"id": "cobble", "count": 3}], "out": [{"id": "campfire", "count": 1}], "station": "", "time": 3.0, "desc": "A ring of stones and wood. Light, heat, and a place to cook."},
-    {"id": "fiber_rope", "name": "Rope", "in": [{"id": "fiber", "count": 6}], "out": [{"id": "rope", "count": 1}], "station": "", "time": 2.5, "desc": "Twisted plant fiber."},
-    {"id": "thatch_bundle", "name": "Thatch", "in": [{"id": "fiber", "count": 4}], "out": [{"id": "thatch", "count": 2}], "station": "", "time": 1.5, "desc": "Bundle grass into thatch blocks. Keeps the light out, not the air."},
-    {"id": "bandage_from_fiber", "name": "Bandage", "in": [{"id": "fiber", "count": 8}], "out": [{"id": "bandage", "count": 1}], "station": "", "time": 4.0, "desc": "A crude fiber bandage. Three wraps."},
-    {"id": "splint_from_planks", "name": "Splint", "in": [{"id": "planks", "count": 1}, {"id": "fiber", "count": 3}], "out": [{"id": "splint", "count": 1}], "station": "", "time": 3.0, "desc": "Two planks and a strap."},
-    {"id": "canteen", "name": "Canteen", "in": [{"id": "clay", "count": 2}], "out": [{"id": "canteen", "count": 1}], "station": "campfire", "time": 5.0, "desc": "Fire a clay flask. Holds eight drinks."},
-    {"id": "cooked_meat", "name": "Cooked Meat", "in": [{"id": "meat_raw", "count": 1}], "out": [{"id": "meat_cooked", "count": 1}], "station": "campfire", "time": 4.0, "desc": "Safe to eat and twice as filling."},
-    {"id": "brick_from_clay", "name": "Clay Brick", "in": [{"id": "clay", "count": 1}], "out": [{"id": "brick", "count": 1}], "station": "campfire", "time": 3.0, "desc": "Fire clay into an airtight, waterproof brick."},
-    {"id": "glass_from_sand", "name": "Glass Pane", "in": [{"id": "sand", "count": 2}], "out": [{"id": "glass", "count": 1}], "station": "campfire", "time": 4.0, "desc": "Melt sand into a pane. Airtight, see-through."},
-    {"id": "charcoal", "name": "Charcoal", "in": [{"id": "log", "count": 1}], "out": [{"id": "charcoal", "count": 2}], "station": "campfire", "time": 4.0, "desc": "Char a log slowly."},
-    {"id": "filter_from_charcoal", "name": "Breather Filter", "in": [{"id": "charcoal", "count": 2}, {"id": "fiber", "count": 4}], "out": [{"id": "filter", "count": 1}], "station": "", "time": 5.0, "desc": "Pack charcoal and fiber into a canister. Scrubs gas for ninety seconds."}
+    {
+      "id": "planks_from_log",
+      "name": "Planks",
+      "in": [
+        {
+          "id": "log",
+          "count": 1
+        }
+      ],
+      "out": [
+        {
+          "id": "planks",
+          "count": 4
+        }
+      ],
+      "station": "",
+      "time": 2.0,
+      "desc": "Split a log into four planks."
+    },
+    {
+      "id": "campfire",
+      "name": "Campfire",
+      "in": [
+        {
+          "id": "log",
+          "count": 2
+        },
+        {
+          "id": "cobble",
+          "count": 3
+        }
+      ],
+      "out": [
+        {
+          "id": "campfire",
+          "count": 1
+        }
+      ],
+      "station": "",
+      "time": 3.0,
+      "desc": "A ring of stones and wood. Light, heat, and a place to cook."
+    },
+    {
+      "id": "fiber_rope",
+      "name": "Rope",
+      "in": [
+        {
+          "id": "fiber",
+          "count": 6
+        }
+      ],
+      "out": [
+        {
+          "id": "rope",
+          "count": 1
+        }
+      ],
+      "station": "",
+      "time": 2.5,
+      "desc": "Twisted plant fiber."
+    },
+    {
+      "id": "thatch_bundle",
+      "name": "Thatch",
+      "in": [
+        {
+          "id": "fiber",
+          "count": 4
+        }
+      ],
+      "out": [
+        {
+          "id": "thatch",
+          "count": 2
+        }
+      ],
+      "station": "",
+      "time": 1.5,
+      "desc": "Bundle grass into thatch blocks. Keeps the light out, not the air."
+    },
+    {
+      "id": "bandage_from_fiber",
+      "name": "Bandage",
+      "in": [
+        {
+          "id": "fiber",
+          "count": 8
+        }
+      ],
+      "out": [
+        {
+          "id": "bandage",
+          "count": 1
+        }
+      ],
+      "station": "",
+      "time": 4.0,
+      "desc": "A crude fiber bandage. Three wraps."
+    },
+    {
+      "id": "splint_from_planks",
+      "name": "Splint",
+      "in": [
+        {
+          "id": "planks",
+          "count": 1
+        },
+        {
+          "id": "fiber",
+          "count": 3
+        }
+      ],
+      "out": [
+        {
+          "id": "splint",
+          "count": 1
+        }
+      ],
+      "station": "",
+      "time": 3.0,
+      "desc": "Two planks and a strap."
+    },
+    {
+      "id": "canteen",
+      "name": "Canteen",
+      "in": [
+        {
+          "id": "clay",
+          "count": 2
+        }
+      ],
+      "out": [
+        {
+          "id": "canteen",
+          "count": 1
+        }
+      ],
+      "station": "campfire",
+      "time": 5.0,
+      "desc": "Fire a clay flask. Holds eight drinks."
+    },
+    {
+      "id": "cooked_meat",
+      "name": "Cooked Meat",
+      "in": [
+        {
+          "id": "meat_raw",
+          "count": 1
+        }
+      ],
+      "out": [
+        {
+          "id": "meat_cooked",
+          "count": 1
+        }
+      ],
+      "station": "campfire",
+      "time": 4.0,
+      "desc": "Safe to eat and twice as filling."
+    },
+    {
+      "id": "brick_from_clay",
+      "name": "Clay Brick",
+      "in": [
+        {
+          "id": "clay",
+          "count": 1
+        }
+      ],
+      "out": [
+        {
+          "id": "brick",
+          "count": 1
+        }
+      ],
+      "station": "campfire",
+      "time": 3.0,
+      "desc": "Fire clay into an airtight, waterproof brick."
+    },
+    {
+      "id": "glass_from_sand",
+      "name": "Glass Pane",
+      "in": [
+        {
+          "id": "sand",
+          "count": 2
+        }
+      ],
+      "out": [
+        {
+          "id": "glass",
+          "count": 1
+        }
+      ],
+      "station": "campfire",
+      "time": 4.0,
+      "desc": "Melt sand into a pane. Airtight, see-through."
+    },
+    {
+      "id": "charcoal",
+      "name": "Charcoal",
+      "in": [
+        {
+          "id": "log",
+          "count": 1
+        }
+      ],
+      "out": [
+        {
+          "id": "charcoal",
+          "count": 2
+        }
+      ],
+      "station": "campfire",
+      "time": 4.0,
+      "desc": "Char a log slowly."
+    },
+    {
+      "id": "filter_from_charcoal",
+      "name": "Breather Filter",
+      "in": [
+        {
+          "id": "charcoal",
+          "count": 2
+        },
+        {
+          "id": "fiber",
+          "count": 4
+        }
+      ],
+      "out": [
+        {
+          "id": "filter",
+          "count": 1
+        }
+      ],
+      "station": "",
+      "time": 5.0,
+      "desc": "Pack charcoal and fiber into a canister. Scrubs gas for ninety seconds."
+    },
+    {
+      "id": "cairn",
+      "name": "Cairn Stones",
+      "in": [
+        {
+          "id": "cobble",
+          "count": 6
+        },
+        {
+          "id": "rope",
+          "count": 1
+        }
+      ],
+      "out": [
+        {
+          "id": "cairn",
+          "count": 1
+        }
+      ],
+      "station": "",
+      "time": 6.0,
+      "desc": "For bringing a friend back. Needs a fire beside it through one full night."
+    }
   ]
 }

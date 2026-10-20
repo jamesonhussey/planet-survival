@@ -43,6 +43,8 @@ signal attack_requested(target: Node)
 ## Physics hit in front of the camera this frame: {"collider": Object, "position": Vector3, "distance": float} or {}.
 var interact_hit: Dictionary = {}
 var sprint_allowed: bool = true
+## Dead in co-op: floats, watches, cannot touch the world.
+var ghost: bool = false
 var sprinting: bool = false
 var _attack_cooldown: float = 0.0
 signal hotbar_changed(index: int)
@@ -121,9 +123,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("hotbar_prev"):
 		_select_hotbar(hotbar_index - 1)
 	elif event.is_action_pressed("use_item"):
-		use_requested.emit(selected_item())
+		if not ghost:
+			use_requested.emit(selected_item())
 	elif event.is_action_pressed("interact"):
-		interact_requested.emit()
+		if not ghost:
+			interact_requested.emit()
 	elif event is InputEventMouseButton and event.is_pressed():
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -199,7 +203,7 @@ func _physics_process(delta: float) -> void:
 	_update_aim()
 	_update_interact_hit()
 	_attack_cooldown = maxf(0.0, _attack_cooldown - delta)
-	if input_enabled:
+	if input_enabled and not ghost:
 		var creature_in_front: bool = not interact_hit.is_empty() and interact_hit["collider"] is Creature and (not _aim.hit or float(interact_hit["distance"]) < _aim.distance)
 		if Input.is_action_pressed("dig") and creature_in_front and _attack_cooldown <= 0.0:
 			_attack_cooldown = 0.5

@@ -2,39 +2,142 @@
   "_doc": "Limited colour palette per planet. Generators pick from 'ramps' (dark->light) and named colours; the post shader quantises everything else.",
   "palettes": {
     "01": {
-      "sky_top": "#1a0f2e", "sky_horizon": "#4a2c5a", "fog": "#3a2448", "sun": "#fff2c8", "ambient": "#2b1d3a",
+      "sky_top": "#1a0f2e",
+      "sky_horizon": "#4a2c5a",
+      "fog": "#3a2448",
+      "sun": "#fff2c8",
+      "ambient": "#2b1d3a",
       "ramps": {
-        "stone": ["#2a2230", "#4a3e52", "#6e6278", "#948aa0"],
-        "wood": ["#2e1f1a", "#4e3a2c", "#6d5440", "#8a7158"],
-        "dust": ["#3a2f2a", "#5a4a40", "#7a6a5a", "#9a8a78"],
-        "skin": ["#4a3a3a", "#7a5a52", "#a88474", "#d0ab96"]
+        "stone": [
+          "#2a2230",
+          "#4a3e52",
+          "#6e6278",
+          "#948aa0"
+        ],
+        "wood": [
+          "#2e1f1a",
+          "#4e3a2c",
+          "#6d5440",
+          "#8a7158"
+        ],
+        "dust": [
+          "#3a2f2a",
+          "#5a4a40",
+          "#7a6a5a",
+          "#9a8a78"
+        ],
+        "skin": [
+          "#4a3a3a",
+          "#7a5a52",
+          "#a88474",
+          "#d0ab96"
+        ]
       }
     },
     "02": {
-      "sky_top": "#7fc4ff", "sky_horizon": "#eaf6ff", "fog": "#d9ecf6", "sun": "#fffbe6", "ambient": "#9fbfd0",
+      "sky_top": "#7fc4ff",
+      "sky_horizon": "#eaf6ff",
+      "fog": "#d9ecf6",
+      "sun": "#fffbe6",
+      "ambient": "#9fbfd0",
       "ramps": {
-        "sand": ["#b89a62", "#d6b97e", "#ecd59e", "#fbeec4"],
-        "sea": ["#1f5f7a", "#2f8aa6", "#5bb7c9", "#a6e0e6"],
-        "palm": ["#2d5a2a", "#4a8a3a", "#78b05a", "#a8d47e"],
-        "roach": ["#2a1a10", "#4e2e18", "#7a4a26", "#a86c3a"]
+        "sand": [
+          "#b89a62",
+          "#d6b97e",
+          "#ecd59e",
+          "#fbeec4"
+        ],
+        "sea": [
+          "#1f5f7a",
+          "#2f8aa6",
+          "#5bb7c9",
+          "#a6e0e6"
+        ],
+        "palm": [
+          "#2d5a2a",
+          "#4a8a3a",
+          "#78b05a",
+          "#a8d47e"
+        ],
+        "roach": [
+          "#2a1a10",
+          "#4e2e18",
+          "#7a4a26",
+          "#a86c3a"
+        ]
       }
     },
     "03": {
-      "sky_top": "#5b6b8a", "sky_horizon": "#b8c0cc", "fog": "#9aa4b4", "sun": "#f8f4e8", "ambient": "#6a7484",
+      "sky_top": "#5b6b8a",
+      "sky_horizon": "#b8c0cc",
+      "fog": "#9aa4b4",
+      "sun": "#f8f4e8",
+      "ambient": "#6a7484",
       "ramps": {
-        "rock": ["#3a3a3a", "#5c5c5a", "#7e7e7a", "#a0a09a"],
-        "grass": ["#3a5a2a", "#56803a", "#78a04e", "#a0c070"]
+        "rock": [
+          "#3a3a3a",
+          "#5c5c5a",
+          "#7e7e7a",
+          "#a0a09a"
+        ],
+        "grass": [
+          "#3a5a2a",
+          "#56803a",
+          "#78a04e",
+          "#a0c070"
+        ]
       }
     },
     "04": {
-      "sky_top": "#7fae7a", "sky_horizon": "#d8e3b4", "fog": "#b9cfa6", "sun": "#f2f0d8", "ambient": "#4f6a4c", "haze": "#c8d6a0",
+      "sky_top": "#7fae7a",
+      "sky_horizon": "#d8e3b4",
+      "fog": "#b9cfa6",
+      "sun": "#f2f0d8",
+      "ambient": "#4f6a4c",
+      "haze": "#c8d6a0",
       "ramps": {
-        "leaf": ["#1f4a2a", "#2f6e3a", "#4f9a4a", "#8fd19a"],
-        "bark": ["#2a1e14", "#4a3522", "#6a4f34", "#8a6a48"],
-        "stone": ["#3a4a3a", "#5a6e58", "#7e8e7a", "#a2b09a"],
-        "lantern": ["#3a2a1a", "#7a5a2a", "#d8a040", "#ffe08a"],
-        "grazer": ["#3a3028", "#6a5a48", "#9a8a70", "#c8b89a"],
-        "water": ["#2a5a58", "#3f8078", "#5aa89a", "#8fd0c0"]
+        "leaf": [
+          "#1f4a2a",
+          "#2f6e3a",
+          "#4f9a4a",
+          "#8fd19a"
+        ],
+        "bark": [
+          "#2a1e14",
+          "#4a3522",
+          "#6a4f34",
+          "#8a6a48"
+        ],
+        "stone": [
+          "#3a4a3a",
+          "#5a6e58",
+          "#7e8e7a",
+          "#a2b09a"
+        ],
+        "lantern": [
+          "#3a2a1a",
+          "#7a5a2a",
+          "#d8a040",
+          "#ffe08a"
+        ],
+        "grazer": [
+          "#3a3028",
+          "#6a5a48",
+          "#9a8a70",
+          "#c8b89a"
+        ],
+        "water": [
+          "#2a5a58",
+          "#3f8078",
+          "#5aa89a",
+          "#8fd0c0"
+        ],
+        "skin": [
+          "#4a3a3a",
+          "#7a5a52",
+          "#a88474",
+          "#d0ab96"
+        ]
       }
     }
   }

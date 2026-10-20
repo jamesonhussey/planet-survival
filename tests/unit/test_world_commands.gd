@@ -15,7 +15,7 @@ func _setup() -> Array:
 	var cmds := WorldCommands.new()
 	cmds.setup(w)
 	var s := Session.new()
-	s.setup_local_host(cmds)
+	s.setup(cmds)
 	return [w, cmds, s]
 
 
@@ -91,7 +91,7 @@ func test_kit_drops_and_consumption() -> void:
 	kit.equipment.equip(Data.make_item("backpack_small"))
 	cmds.kit_lookup = func(_peer: int) -> PlayerKit: return kit
 	var s := Session.new()
-	s.setup_local_host(cmds)
+	s.setup(cmds)
 	var rejected := []
 	cmds.command_rejected.connect(func(_p: int, _c: Dictionary, r: String) -> void: rejected.append(r))
 	s.submit({"type": "dig", "pos": Vector3i(3, 3, 3), "from": Vector3(3.5, 5.0, 3.5)})

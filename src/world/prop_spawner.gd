@@ -32,6 +32,10 @@ var regrow_at: Dictionary = {}      # Vector2i cell -> game day_time when a bush
 var clock: GameClock = null
 
 signal creature_spawned(creature: Creature)
+## Clients get creatures from the server instead of spawning their own.
+var spawn_creatures: bool = true
+var next_creature_id: int = 1
+var creatures_by_id: Dictionary = {}
 
 
 func setup(world_data: WorldData, gen: ChunkGenerator, planet_cfg: Dictionary, seed: int, mat: Material, emissive: Material) -> void:
@@ -79,6 +83,7 @@ func set_focus(pos: Vector3) -> void:
 				if is_instance_valid(n):
 					if n is Creature:
 						creatures.erase(n)
+						creatures_by_id.erase((n as Creature).net_id)
 					n.queue_free()
 			_columns.erase(c)
 
@@ -127,12 +132,16 @@ func _populate(c: Vector2i) -> void:
 				continue
 			var pos := Vector3(x + 0.5, y + 1.0, z + 0.5)
 			if is_creature:
-				if creatures.size() >= max_creatures:
+				if not spawn_creatures or creatures.size() >= max_creatures:
 					continue
 				var cr := Creature.new()
 				cr.name = "%s_%d_%d" % [gen_name, x, z]
 				creatures_root.add_child(cr)
+				cr.set_meta("variant_seed", vseed)
 				cr.setup(rig, material, rng.randi(), gen_name)
+				cr.net_id = next_creature_id
+				next_creature_id += 1
+				creatures_by_id[cr.net_id] = cr
 				cr.drops = p.get("drops", [])
 				cr.global_position = pos + Vector3(0, 0.2, 0)
 				cr.rotation.y = rng.randf() * TAU
@@ -233,3 +242,67 @@ func _process(_delta: float) -> void:
 		for n in arr:
 			if n is Node3D and not (n is Creature) and n.has_meta("cell") and regrow_at.has(n.get_meta("cell")):
 				_apply_regrow_state(n)
+
+
+## Client side: create or update a mirrored creature from a server state.
+func apply_remote_creature(id: int, kind: String, seed: int, pos: Vector3, yaw: float, is_moving: bool, is_dead: bool) -> void:
+	var cr: Creature = creatures_by_id.get(id)
+	if cr == null:
+		var cfg: Dictionary = {}
+		for p in planet.get("props", []):
+			if str(p.get("generator", "")) == kind:
+				cfg = p
+				break
+		var rig := VoxelArt.rig(kind, cfg.get("params", {}), seed, palette_id)
+		if rig == null:
+			return
+		cr = Creature.new()
+		cr.name = "%s_remote_%d" % [kind, id]
+		cr.remote = true
+		cr.net_id = id
+		creatures_root.add_child(cr)
+		cr.setup(rig, material, seed, kind)
+		cr.global_position = pos
+		cr._remote_target = pos
+		creatures.append(cr)
+		creatures_by_id[id] = cr
+	cr.apply_remote(pos, yaw, is_moving, is_dead)
+
+
+## Variant seed a creature was built with (for replication).
+func creature_seed(cr: Creature) -> int:
+	return int(cr.rng.seed) if cr.has_meta("variant_seed") == false else int(cr.get_meta("variant_seed"))
+
+
+func prop_by_cell(cell: Vector2i) -> Node3D:
+	for arr in _columns.values():
+		for n in arr:
+			if n is Node3D and not (n is Creature) and n.has_meta("cell") and n.get_meta("cell") == cell:
+				return n
+	return null
+
+
+## Client side: mirror a harvest decided by the server.
+func apply_remote_harvest(cell: Vector2i, regrow: float, was_removed: bool) -> void:
+	if was_removed:
+		removed[cell] = true
+	elif regrow > 0.0:
+		regrow_at[cell] = regrow
+	var n := prop_by_cell(cell)
+	if n == null:
+		return
+	if was_removed:
+		for arr in _columns.values():
+			arr.erase(n)
+		n.queue_free()
+	else:
+		_apply_regrow_state(n)
+
+
+func harvested_state() -> Array:
+	var out: Array = []
+	for c in removed.keys():
+		out.append([c.x, c.y, 0.0, true])
+	for c in regrow_at.keys():
+		out.append([c.x, c.y, float(regrow_at[c]), false])
+	return out

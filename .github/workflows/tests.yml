@@ -21,3 +21,5 @@ jobs:
         run: tools/test.sh
       - name: Smoke boot
         run: tools/smoke.sh 04
+      - name: Co-op smoke (host + client)
+        run: tools/nettest.sh

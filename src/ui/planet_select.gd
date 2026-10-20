@@ -35,6 +35,9 @@ var has_save: bool = false
 
 signal start_requested(planet_id: String, mode_id: String)
 signal continue_requested
+signal host_requested(planet_id: String, mode_id: String)
+signal join_requested(address: String)
+var address_edit: LineEdit
 
 
 func _ready() -> void:
@@ -119,7 +122,7 @@ func _ready() -> void:
 		modes.add_child(b)
 		mode_buttons.append(b)
 	var row := HBoxContainer.new()
-	row.position = Vector2(150, 240)
+	row.position = Vector2(236, 240)
 	row.add_theme_constant_override("separation", 8)
 	root.add_child(row)
 	start_button = Button.new()
@@ -134,6 +137,27 @@ func _ready() -> void:
 	continue_button.focus_mode = Control.FOCUS_NONE
 	continue_button.pressed.connect(func() -> void: continue_requested.emit())
 	row.add_child(continue_button)
+	var net_row := HBoxContainer.new()
+	net_row.position = Vector2(8, 240)
+	net_row.add_theme_constant_override("separation", 4)
+	root.add_child(net_row)
+	var host_b := Button.new()
+	host_b.text = "HOST"
+	host_b.focus_mode = Control.FOCUS_NONE
+	host_b.pressed.connect(func() -> void:
+		if not start_button.disabled:
+			host_requested.emit(PLANET_ORDER[selected_planet], selected_mode))
+	net_row.add_child(host_b)
+	address_edit = LineEdit.new()
+	address_edit.text = "127.0.0.1"
+	address_edit.custom_minimum_size = Vector2(90, 16)
+	address_edit.placeholder_text = "host ip"
+	net_row.add_child(address_edit)
+	var join_b := Button.new()
+	join_b.text = "JOIN"
+	join_b.focus_mode = Control.FOCUS_NONE
+	join_b.pressed.connect(func() -> void: join_requested.emit(address_edit.text.strip_edges()))
+	net_row.add_child(join_b)
 	_select(3)
 	_refresh_modes()
 
