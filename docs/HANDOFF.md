@@ -45,7 +45,7 @@ file (backlog) as you go.
 8. 01: the moon slips, light burns; shade behind opaque blocks vs glass.
 9. Talk to a villager on each planet; trade; accept and turn in a task; F5 and
    watch them go home.
-10. Esc: save and return to orbit; relaunch with `-- --continue`.
+10. Esc: save and return to orbit; relaunch with `++ --continue` (PowerShell eats a bare `--`; `++` is Godot's other user-arg separator and works everywhere).
 11. Co-op on a LAN: `--host` and `--join=<ip>`; die on one side and run the
     Revival Ritual from the other.
 12. `.\tools\test.ps1` and `.\tools\build.ps1 windows`; run the export.
