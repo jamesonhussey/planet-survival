@@ -5,6 +5,8 @@ A 3D survival game built with Godot 4.7.2: pick one of four planets from orbit, 
 - Design: [`GAME_DESIGN.md`](GAME_DESIGN.md)
 - Conventions, commands, architecture: [`CLAUDE.md`](CLAUDE.md)
 - Licenses of anything third-party: [`LICENSES.md`](LICENSES.md)
+- Where things stand, the test plan and the backlog: [`docs/HANDOFF.md`](docs/HANDOFF.md)
+- Release checklist: [`docs/RELEASE.md`](docs/RELEASE.md)
 
 ## Quick start
 

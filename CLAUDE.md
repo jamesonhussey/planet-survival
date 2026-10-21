@@ -1,6 +1,6 @@
 # CLAUDE.md — project conventions for "Choose a Planet"
 
-Godot 4 survival game: pick one of four planets, learn its deadly physical rule, survive the day target. Everything is built from code and data; see `GAME_DESIGN.md` for the design.
+Godot 4 survival game: pick one of four planets, learn its deadly physical rule, survive the day target. Everything is built from code and data; see `GAME_DESIGN.md` for the design, `docs/HANDOFF.md` for the current state, test plan and backlog, `docs/RELEASE.md` for shipping.
 
 ## Engine version (pinned)
 
