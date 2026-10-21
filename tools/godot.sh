@@ -28,4 +28,27 @@ if [[ ! -x "$EXE" ]]; then
   chmod +x "$EXE" 2>/dev/null || true
 fi
 
+# Fresh clone or changed scripts: refresh .godot/ first so class_name resolves
+# (same rule as tools/ensure_import.sh, inlined to avoid recursion).
+project_run=0
+case " $* " in
+  *" --path "*) project_run=1 ;;
+esac
+case " $* " in
+  *" --import "*|*" --doctool "*|*" -e "*) project_run=0 ;;
+esac
+if [[ $project_run -eq 1 && "${GODOT_NO_IMPORT:-0}" != "1" ]]; then
+  CACHE="$ROOT/.godot/global_script_class_cache.cfg"
+  needs=0
+  if [[ ! -f "$CACHE" || "${FORCE_IMPORT:-0}" == "1" ]]; then
+    needs=1
+  elif [[ -n "$(find "$ROOT/src" "$ROOT/tests" -name '*.gd' -newer "$CACHE" -print -quit 2>/dev/null)" ]]; then
+    needs=1
+  fi
+  if [[ $needs -eq 1 ]]; then
+    echo "[import] refreshing project import/class cache (first run or scripts changed)" >&2
+    GODOT_NO_IMPORT=1 "$EXE" --headless --path "$ROOT" --import >/dev/null 2>&1 || true
+  fi
+fi
+
 exec "$EXE" "$@"

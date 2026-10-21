@@ -84,6 +84,7 @@ tests/        run_tests.gd (runner), test_case.gd (base), unit/test_*.gd
 - Two `RefCounted` objects referencing each other leak (no cycle collector). Back-references (`InventoryGrid.owner_item`, `ItemInstance.parent_grid`) are `WeakRef` properties; connect signals to methods, not to lambdas that capture `self`.
 - `Dictionary.merge()` does not overwrite existing keys unless you pass `true`.
 - Mouse events pushed into the low-res SubViewport must be remapped with `PS1Pipeline.screen_to_view_transform()` or GUI hit-testing is off.
+- A fresh clone has no `.godot/` cache, so every `class_name` fails to resolve ("Could not find type MaterialProps"). Both launchers now run a headless `--import` before a project run when the cache is missing or older than any script; `FORCE_IMPORT=1` forces it.
 - The test runner calls `Data.load_all()` itself; autoloads exist in `-s` runs but `Game.boot()` never runs there.
 - `tools/test.sh` fails on any `SCRIPT ERROR` in the output: a runtime error inside a test aborts that method silently otherwise.
 - Survival rates are per *game hour* (`*_hp_per_hour`); the run converts with `GameClock.game_seconds_per_second()`. Mixing real and game seconds killed the player in 3 minutes once.
