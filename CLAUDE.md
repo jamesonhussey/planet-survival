@@ -13,21 +13,21 @@ Godot 4 survival game: pick one of four planets, learn its deadly physical rule,
 | What | Windows (PowerShell) | Linux/macOS |
 |---|---|---|
 | Play (orbit screen) | `.\tools\godot.ps1 --path .` | `tools/godot.sh --path .` |
-| Continue the save slot | `.\tools\godot.ps1 --path . -- --continue` | same |
-| Co-op: host | `.\tools\godot.ps1 --path . -- --host --planet=04 --name=Jam` (or the HOST button in orbit) | same |
-| Co-op: join | `.\tools\godot.ps1 --path . -- --join=192.168.1.10 --name=Pat` (or JOIN in orbit) | same |
+| Continue the save slot | `.\tools\godot.ps1 --path . ++ --continue` | same |
+| Co-op: host | `.\tools\godot.ps1 --path . ++ --host --planet=04 --name=Jam` (or the HOST button in orbit) | same |
+| Co-op: join | `.\tools\godot.ps1 --path . ++ --join=192.168.1.10 --name=Pat` (or JOIN in orbit) | same |
 | Co-op smoke test (host + client on localhost) | n/a | `tools/nettest.sh` |
 | Export builds | `.\tools\build.ps1 [windows\|linux\|all]` (templates via the editor once) | `tools/build.sh [windows\|linux\|all]` (downloads templates on first use) |
-| Play a planet directly | `.\tools\godot.ps1 --path . -- --planet=04 --seed=42` | same args |
+| Play a planet directly | `.\tools\godot.ps1 --path . ++ --planet=04 --seed=42` | same args |
 | Unit tests | `.\tools\test.ps1 [--filter=gas]` | `tools/test.sh [--filter=gas]` |
-| Smoke boot (headless, fails on script errors) | `.\tools\godot.ps1 --headless --path . -- --smoke --planet=04 --frames=240` | `tools/smoke.sh` (all four planets) or `tools/smoke.sh 02` |
+| Smoke boot (headless, fails on script errors) | `.\tools\godot.ps1 --headless --path . ++ --smoke --planet=04 --frames=240` | `tools/smoke.sh` (all four planets) or `tools/smoke.sh 02` |
 | Fetch GodotSteam (optional) | see `docs/RELEASE.md` | `tools/get_godotsteam.sh` |
 | Eruption smoke run | add `--trigger --timescale=10` | same |
 | Screenshot without a GPU (Linux, Xvfb + Mesa) | n/a | `tools/screenshot.sh 04 120 [--village --ui=dialogue]` |
 | Dump the official class reference for the pinned version | `.\tools\godot.ps1 --headless --doctool docs\godot-classes --no-docbase` | `tools/docs.sh` |
 | Open the editor | `.\tools\godot.ps1 --path . -e` | `tools/godot.sh --path . -e` |
 
-Command-line user args (after `--`): `--planet=ID`, `--mode=short|standard|long_haul`, `--seed=N`, `--continue`, `--menu`, `--smoke`, `--screenshot`, `--frames=N`, `--trigger`, `--timescale=N`, `--hour=H` (start time of day), `--campfire` (place a lit campfire by spawn), `--savetest` (save at frame 30; run again with `--continue` to verify), `--eye=dx,dy,dz --yaw=r --pitch=r` (debug fly camera offset from spawn), `--village` (fly camera at the nearest settlement), `--ui=inventory|health|crafting|dialogue` (open a screen at boot; dialogue waits for a villager within 20 m), `--lookat=giant` (camera tracks the giant), `--world_size=N` (0 = unbounded) and `--origin=x,z` (spawn search centre) for far-from-origin tests.
+Command-line user args (after `--`, or `++` from PowerShell, which strips a bare `--`): `--planet=ID`, `--mode=short|standard|long_haul`, `--seed=N`, `--continue`, `--menu`, `--smoke`, `--screenshot`, `--frames=N`, `--trigger`, `--timescale=N`, `--hour=H` (start time of day), `--campfire` (place a lit campfire by spawn), `--savetest` (save at frame 30; run again with `--continue` to verify), `--eye=dx,dy,dz --yaw=r --pitch=r` (debug fly camera offset from spawn), `--village` (fly camera at the nearest settlement), `--ui=inventory|health|crafting|dialogue` (open a screen at boot; dialogue waits for a villager within 20 m), `--lookat=giant` (camera tracks the giant), `--world_size=N` (0 = unbounded) and `--origin=x,z` (spawn search centre) for far-from-origin tests.
 
 In-game keys: F1 help (controls; the only on-screen text that explains anything), WASD move, Space jump, Shift sprint (drains stamina), Ctrl crouch, LMB dig or hit a creature, RMB place the block in the selected quick slot, 1–6 / wheel select quick slot, Q use the selected item (med → auto-picks the worst part; food → eat/drink; breather → toggle), E take a pickup / harvest a tree or bush / drink from water (refills canteens) / talk to a villager, Tab inventory, H health screen, C crafting, F flashlight, Esc pause menu (resume, save and return to orbit, quit) or close screens, R restart after death. In the inventory: click an item to hold it, click a cell to put it there, R rotates while holding, right-click for Examine/Use/Equip/Open/Split/Drop, 1–6 while hovering assigns a quick slot, G drops. Debug: F3 overlay, F5 trigger hazard, F6 time ×20, F7 fly, F8 reload `data/render_settings.json`.
 

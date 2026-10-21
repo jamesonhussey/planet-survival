@@ -47,5 +47,8 @@ if ($IsProjectRun -and $env:GODOT_NO_IMPORT -ne "1" -and (Test-NeedsImport)) {
     $env:GODOT_NO_IMPORT = $null
 }
 
+# Windows PowerShell turns redirected stderr (e.g. a caller's 2>&1) into error
+# records; under "Stop" Godot's first engine warning would abort the run.
+$ErrorActionPreference = "Continue"
 & $Exe @args
 exit $LASTEXITCODE

@@ -13,7 +13,7 @@ if ($Needs) {
     Write-Host "[import] refreshing project import/class cache"
     & "$Root\tools\godot.ps1" --headless --path . --import | Out-Null
 }
-$Out = & "$Root\tools\godot.ps1" --headless --path . -s res://tests/run_tests.gd -- @args 2>&1 | Out-String
+$Out = & "$Root\tools\godot.ps1" --headless --path . -s res://tests/run_tests.gd ++ @args 2>&1 | Out-String
 $Code = $LASTEXITCODE
 Write-Host $Out
 if ($Out -match "SCRIPT ERROR") { Write-Host "!! script errors during tests"; exit 1 }
